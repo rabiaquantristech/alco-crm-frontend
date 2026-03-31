@@ -7,10 +7,20 @@ type AuthState = {
   isAuthenticated: boolean;
 };
 
-const initialState: AuthState = {
-  user: null,
-  token: typeof window !== "undefined" ? localStorage.getItem("token") : null,
-  isAuthenticated: false,
+const storedUser =
+  typeof window !== "undefined"
+    ? localStorage.getItem("user")
+    : null;
+
+const storedToken =
+  typeof window !== "undefined"
+    ? localStorage.getItem("token")
+    : null;
+
+const initialState = {
+  user: storedUser ? JSON.parse(storedUser) : null,
+  token: storedToken || null,
+  isAuthenticated: !!storedToken,
 };
 
 const authSlice = createSlice({

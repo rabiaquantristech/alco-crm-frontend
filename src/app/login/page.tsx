@@ -8,10 +8,13 @@ import { useAppDispatch } from "@/store/hooks";
 import { setCredentials } from "@/store/authSlice";
 import { loginUser } from "@/utils/api";
 import toast from "react-hot-toast";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import InputField from "../component/ui/inputField";
+import Button from "../component/ui/button";
+import { FcGoogle } from "react-icons/fc";
+import { FaLinkedin } from "react-icons/fa";
 
-// Zod Schema
 const loginSchema = z.object({
   email: z.string().email("Valid email daalo"),
   password: z.string().min(6, "Password kam az kam 6 characters ka hona chahiye"),
@@ -24,11 +27,7 @@ export default function LoginPage() {
   const dispatch = useAppDispatch();
   const [showPassword, setShowPassword] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
@@ -47,10 +46,6 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (data: LoginForm) => {
-    mutate(data);
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-8">
@@ -63,79 +58,70 @@ export default function LoginPage() {
           <span className="text-gray-900 font-bold text-xl">ALCO CRM</span>
         </div>
 
-        {/* Title */}
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Welcome back!</h1>
         <p className="text-gray-400 text-sm mb-6">Login to your account to continue</p>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-4">
+          <InputField
+            label="Email"
+            type="email"
+            placeholder="you@example.com"
+            error={errors.email}
+            {...register("email")}
+          />
 
-          {/* Email */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
-              Email
-            </label>
-            <input
-              {...register("email")}
-              type="email"
-              placeholder="you@example.com"
-              className={`w-full px-4 py-2.5 rounded-lg border text-sm outline-none transition
-                ${errors.email
-                  ? "border-red-400 focus:border-red-400"
-                  : "border-gray-200 focus:border-yellow-400"
-                }`}
-            />
-            {errors.email && (
-              <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
-            )}
-          </div>
-
-          {/* Password */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                {...register("password")}
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                className={`w-full px-4 py-2.5 rounded-lg border text-sm outline-none transition pr-10
-                  ${errors.password
-                    ? "border-red-400 focus:border-red-400"
-                    : "border-gray-200 focus:border-yellow-400"
-                  }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
+          <InputField
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            error={errors.password}
+            {...register("password")}
+            rightIcon={
+              <button type="button" onClick={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-            </div>
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-            )}
-          </div>
+            }
+          />
 
-          {/* Submit Button */}
+          <Button fullWidth isLoading={isPending} loadingText="Logging in...">
+            Login
+          </Button>
+        </form>
+
+        {/* OR Divider */}
+        <div className="flex items-center my-6">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="px-3 text-sm text-gray-400">OR</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+
+        {/* Social Login Buttons */}
+        <div className="space-y-3">
+          {/* Google */}
           <button
-            type="submit"
-            disabled={isPending}
-            className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-70"
+            type="button"
+            onClick={() => {
+              window.location.href = `${process.env.NEXT_PUBLIC_AUTH_API_URL}/auth/google`;
+            }}
+            className="w-full flex items-center justify-center gap-2 border rounded-lg py-2 text-gray-600 hover:bg-gray-50"
           >
-            {isPending ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Logging in...
-              </>
-            ) : (
-              "Login"
-            )}
+            <FcGoogle size={20} />
+            Continue with Google
           </button>
 
-        </form>
+          {/* LinkedIn */}
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = `${process.env.NEXT_PUBLIC_AUTH_API_URL}/auth/linkedin`;
+            }}
+            className="w-full flex items-center justify-center gap-2 border rounded-lg py-2 text-gray-600 hover:bg-gray-50"
+          >
+            <FaLinkedin size={20} className="text-blue-600" />
+            Continue with LinkedIn
+          </button>
+        </div>
+
       </div>
     </div>
   );

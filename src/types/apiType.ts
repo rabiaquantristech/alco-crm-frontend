@@ -16,11 +16,13 @@ export type UpdateUserData = {
   role?: string;
 }
 
+export type UserRole = "user" | "admin" | "relationship_manager";
+
 export type User = {
   _id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   createdAt: string;
 }
 
@@ -28,4 +30,10 @@ export type AuthResponse = {
   success: boolean;
   token: string;
   user: User;
+}
+
+export type UsersResponse = {
+  success: boolean;
+  count: number;
+  users: User[];
 }
