@@ -31,7 +31,7 @@ function AuthCallbackInner() {
       // Phir Redux mein save karo
       dispatch(setCredentials({ user, token }));
 
-      toast.success("Login successful 🎉");
+      toast.success("Successfully authorized! 🎉");
 
       // Thoda delay do taake Redux state set ho jaye
       setTimeout(() => {
