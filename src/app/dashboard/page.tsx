@@ -11,17 +11,17 @@ export default function DashboardPage() {
   const { user, token } = useAppSelector((state) => state.auth);
   const router = useRouter();
 
-  useEffect(() => {
-    // localStorage se check karo agar Redux mein nahi hai
-    if (!token) {
-      const storedToken = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("user");
+  // useEffect(() => {
+  //   // localStorage se check karo agar Redux mein nahi hai
+  //   if (!token) {
+  //     const storedToken = localStorage.getItem("token");
+  //     const storedUser = localStorage.getItem("user");
       
-      if (!storedToken || !storedUser) {
-        router.replace("/login");
-      }
-    }
-  }, [token]);
+  //     if (!storedToken || !storedUser) {
+  //       router.replace("/login");
+  //     }
+  //   }
+  // }, [token]);
 
   const renderDashboard = () => {
     switch (user?.role) {
