@@ -39,9 +39,9 @@ function AuthCallbackInner() {
       }, 500);
 
     } catch (err) {
-      console.error(err);
-      toast.error("Login failed!");
-      router.replace("/login");
+      // console.error(err);
+      // toast.error("Login failed!");
+      // router.replace("/login");
     }
   }, [searchParams]);
 
