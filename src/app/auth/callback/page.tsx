@@ -15,34 +15,37 @@ function AuthCallbackInner() {
     const token = searchParams.get("token");
     const userStr = searchParams.get("user");
 
-    if (!token || !userStr) {
-      toast.error("Auth failed!");
-      router.replace("/login");
-      return;
-    }
+    console.log("Received token:", token);
+    console.log("Received user:", userStr);
 
-    try {
-      const user = JSON.parse(decodeURIComponent(userStr));
+    // if (!token || !userStr) {
+    //   toast.error("Auth failed!");
+    //   router.replace("/login");
+    //   return;
+    // }
 
-      // Pehle localStorage mein save karo
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+    // try {
+    //   const user = JSON.parse(decodeURIComponent(userStr));
 
-      // Phir Redux mein save karo
-      dispatch(setCredentials({ user, token }));
+    //   // Pehle localStorage mein save karo
+    //   localStorage.setItem("token", token);
+    //   localStorage.setItem("user", JSON.stringify(user));
 
-      toast.success("Successfully authorized! 🎉");
+    //   // Phir Redux mein save karo
+    //   dispatch(setCredentials({ user, token }));
 
-      // Thoda delay do taake Redux state set ho jaye
-      setTimeout(() => {
-        router.replace("/dashboard");
-      }, 500);
+    //   toast.success("Successfully authorized! 🎉");
 
-    } catch (err) {
-      console.error(err);
-      toast.error("Login failed!");
-      router.replace("/login");
-    }
+    //   // Thoda delay do taake Redux state set ho jaye
+    //   setTimeout(() => {
+    //     router.replace("/dashboard");
+    //   }, 500);
+
+    // } catch (err) {
+    //   console.error(err);
+    //   toast.error("Login failed!");
+    //   router.replace("/login");
+    // }
   }, [searchParams]);
 
   return (
