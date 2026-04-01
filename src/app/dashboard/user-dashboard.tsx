@@ -247,14 +247,14 @@ export default function UserDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* <div className="grid grid-cols-4 gap-4">
         {stats.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}
-      </div>
+      </div> */}
 
       {/* Pipeline + Quick Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
           <LeadPipeline data={pipeline} />
         </div>
@@ -266,14 +266,14 @@ export default function UserDashboard() {
             { label: "Active Programs", value: "8", color: "text-purple-600" },
           ]}
         />
-      </div>
+      </div> */}
 
       {/* Chart */}
-      <RevenueChart data={chartData} />
+      {/* <RevenueChart data={chartData} /> */}
 
       {/* Tables */}
-      <SessionsTable data={sessions} />
-      <PaymentsTable data={payments} />
+      {/* <SessionsTable data={sessions} />
+      <PaymentsTable data={payments} /> */}
 
     </div>
   );
