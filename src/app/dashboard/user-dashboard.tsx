@@ -192,23 +192,27 @@
 
 "use client";
 
-import {
-  Users, TrendingUp, DollarSign, Award,
-} from "lucide-react";
-import StatCard from "../component/dashboard/stat-card";
-import LeadPipeline from "../component/dashboard/lead-pipeline";
-import QuickStats from "../component/dashboard/quick-stats";
-import RevenueChart from "../component/dashboard/revenue-chart";
-import SessionsTable from "../component/dashboard/sessions-table";
-import PaymentsTable from "../component/dashboard/payments-table";
+// import {
+//   Users, TrendingUp, DollarSign, Award,
+// } from "lucide-react";
+
+import { BookOpen, ClipboardList, Video, TrendingUp } from "lucide-react";
+import { StatCarduser } from "../component/dashboard/stat-card";
 
 
 
 const stats = [
-  { title: "Total Leads", value: "284", change: "+22.5%", icon: Users, bg: "bg-gray-800", text: "text-white" },
-  { title: "Active Students", value: "142", change: "+18%", icon: TrendingUp, bg: "bg-yellow-400", text: "text-gray-900" },
-  { title: "Monthly Revenue", value: "$48,350", change: "+12%", icon: DollarSign, bg: "bg-blue-600", text: "text-white" },
-  { title: "Pending Certifications", value: "18", change: "-5.1%", icon: Award, bg: "bg-white", text: "text-gray-900" },
+  {
+    title: "Enrolled courses", value: "4", sub: "2 in progress · 2 not started", icon: BookOpen, iconBg: "#EEEDFE",
+    iconColor: "#534AB7",
+  },
+  { title: "Assignments due", value: "3", sub: "1 overdue · next due Apr 5", icon: ClipboardList, iconBg: "#FAEEDA",
+      iconColor: "#854F0B", },
+  { title: "Live sessions", value: "2", sub: "Next: Apr 3 at 2:00 PM", icon: Video, iconBg: "#E1F5EE",
+      iconColor: "#0F6E56", },
+  { title: "Overall progress", value: "62%", sub: "70%", icon: TrendingUp, 
+      iconBg: "#E6F1FB",
+      iconColor: "#185FA5", },
 ];
 
 const pipeline = [
@@ -247,11 +251,11 @@ export default function UserDashboard() {
       </div>
 
       {/* Stats */}
-      {/* <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <StatCard key={stat.title} {...stat} />
+          <StatCarduser key={stat.title} {...stat} />
         ))}
-      </div> */}
+      </div>
 
       {/* Pipeline + Quick Stats */}
       {/* <div className="grid grid-cols-3 gap-4">

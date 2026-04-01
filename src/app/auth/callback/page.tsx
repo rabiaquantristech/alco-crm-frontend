@@ -39,7 +39,7 @@ function AuthCallbackInner() {
       // Thoda delay do taake Redux state set ho jaye
       setTimeout(() => {
         router.replace("/dashboard");
-      }, 500);
+      }, 1000);
 
     } catch (err) {
       // console.error(err);
@@ -49,7 +49,7 @@ function AuthCallbackInner() {
   }, [searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center flex-col gap-3">
+    <div className="min-h-screen flex items-center justify-center flex-col gap-3 bg-gray-100 ">
       <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
       <p className="text-gray-500">Logging you in...</p>
     </div>

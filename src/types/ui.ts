@@ -10,7 +10,7 @@ export type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & {
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   isLoading?: boolean;
   loadingText?: string;
-  variant?: "primary" | "secondary" | "danger";
+  variant?: "primary" | "secondary" | "danger" | "blue" | "black";
   fullWidth?: boolean;
 };
 

@@ -13,6 +13,8 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
+import Image from "next/image";
+import MiniLogo from "@/assets/mini-logo-white.webp";
 
 const menuItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -38,14 +40,31 @@ export default function Sidebar() {
     <div className="w-64 min-h-screen bg-gray-900 text-white flex flex-col">
       {/* Logo */}
       <div className="p-5 border-b border-gray-700">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
-            <span className="text-gray-900 font-bold text-sm">A</span>
+        <div className="flex items-center gap-3">
+
+          {/* Logo */}
+          <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center shrink-0">
+            <Image
+              src={MiniLogo}
+              alt="ALCO CRM Logo"
+              width={28}
+              height={28}
+              className="object-contain"
+            />
           </div>
-          <span className="text-white font-bold text-lg">ALCO</span>
+
+          {/* Text */}
+          <div className="flex flex-col leading-tight">
+            <span className="text-white font-semibold text-sm truncate">
+              Arslan Larik & Company
+            </span>
+            <span className="text-gray-400 text-xs">
+              CRM of the company
+            </span>
+          </div>
+
         </div>
       </div>
-
       {/* Menu Items */}
       <nav className="flex-1 p-4 space-y-1">
         {menuItems.map((item) => {
@@ -55,11 +74,10 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? "bg-yellow-400 text-gray-900 font-semibold"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${isActive
+                ? "bg-yellow-400 text-gray-900 font-semibold"
+                : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                }`}
             >
               <Icon size={18} />
               <span className="text-sm">{item.label}</span>

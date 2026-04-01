@@ -5,6 +5,8 @@ import { ButtonProps } from "@/types/ui";
 const variants = {
   primary: "bg-yellow-400 hover:bg-yellow-500 text-gray-900",
   secondary: "bg-gray-100 hover:bg-gray-200 text-gray-700",
+  blue: "bg-blue-500 hover:bg-blue-600 text-white",
+  black: "bg-gray-800 hover:bg-gray-900 text-white",
   danger: "bg-red-500 hover:bg-red-600 text-white",
 };
 

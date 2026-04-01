@@ -1,3 +1,4 @@
+// ✅ api.ts — poora updated file
 import axios from "axios";
 import { LoginData, RegisterData, UpdateUserData } from "@/types/apiType";
 
@@ -15,34 +16,82 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
-// 401 pe auto logout
+// ✅ 401 pe refresh token try karo, fail ho toh logout
+let isRefreshing = false;
+
 API.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Infinite loop rokne ke liye
+      if (isRefreshing) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login";
+        return Promise.reject(error);
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const refresh_token = localStorage.getItem("refresh_token");
+
+        if (!refresh_token) {
+          throw new Error("No refresh token");
+        }
+
+        // Naya access token lo
+        const res = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
+          { refresh_token }
+        );
+
+        const newAccessToken = res.data.data.access_token;
+        const newRefreshToken = res.data.data.refresh_token;
+
+        // Naye tokens save karo
+        localStorage.setItem("token", newAccessToken);
+        localStorage.setItem("refresh_token", newRefreshToken);
+
+        // Original request dobara karo naye token ke saath
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        isRefreshing = false;
+        return API(originalRequest);
+
+      } catch (refreshError) {
+        // Refresh bhi fail — logout karo
+        isRefreshing = false;
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("refresh_token");
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
+      }
     }
+
     return Promise.reject(error);
   }
 );
 
-// ✅ Auth APIs
+// Auth APIs
 export const loginUser = (data: LoginData) => API.post("/api/auth/login", data);
 export const registerUser = (data: RegisterData) => API.post("/api/auth/register", data);
 
-// ✅ Admin APIs
+// Admin APIs
 export const adminGetAllUsers = () => API.get("/api/admin/users");
 export const adminGetUserById = (id: string) => API.get(`/api/admin/users/${id}`);
 export const adminUpdateUser = (id: string, data: UpdateUserData) => API.patch(`/api/admin/users/${id}`, data);
 export const adminDeleteUser = (id: string) => API.delete(`/api/admin/users/${id}`);
 export const adminDeleteAllUsers = () => API.delete("/api/admin/users");
 
-// ✅ User APIs
-export const getAllUsers = () => API.get("/api/users");
-export const getUserById = (id: string) => API.get(`/api/users/${id}`);
-export const updateUser = (id: string, data: UpdateUserData) => API.put(`/api/users/${id}`, data);
-export const deleteUser = (id: string) => API.delete(`/api/users/${id}`);
+// User Profile APIs
+export const getProfile = () => API.get("/api/users/profile");
+export const updateProfile = (data: { name: string }) => API.patch("/api/users/profile", data);
+export const changePassword = (data: { oldPassword: string; newPassword: string }) => API.patch("/api/users/change-password", data);
+export const deleteMyAccount = () => API.delete("/api/users/delete-account");
 
 export default API;

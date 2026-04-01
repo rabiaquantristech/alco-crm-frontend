@@ -35,8 +35,8 @@ export default function LoginPage() {
     mutationFn: (data: LoginForm) => loginUser(data),
     onSuccess: (res) => {
       dispatch(setCredentials({
-        user: res.data.user,
-        token: res.data.token,
+        user: res.data.data.user,
+        token: res.data.data.access_token,
       }));
       toast.success("Login successful! 🎉");
       router.push("/dashboard");
@@ -110,7 +110,7 @@ export default function LoginPage() {
           </button>
 
           {/* LinkedIn */}
-          <button
+          {/* <button
             type="button"
             onClick={() => {
               window.location.href = `${process.env.NEXT_PUBLIC_AUTH_API_URL}/auth/linkedin`;
@@ -119,7 +119,7 @@ export default function LoginPage() {
           >
             <FaLinkedin size={20} className="text-blue-600" />
             Continue with LinkedIn
-          </button>
+          </button> */}
         </div>
 
       </div>

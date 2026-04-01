@@ -1,0 +1,231 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { logout } from "@/store/authSlice";
+import { useRouter } from "next/navigation";
+import ProtectedRoute from "@/app/component/protected-route";
+import Sidebar from "@/app/component/sidebar";
+import Navbar from "@/app/component/navbar";
+import Button from "@/app/component/ui/button";
+import InputField from "@/app/component/ui/inputField";
+import toast from "react-hot-toast";
+import { User, Lock, Trash2, Save, ShieldAlert } from "lucide-react";
+import { changePassword, deleteMyAccount, getProfile, updateProfile } from "@/utils/api";
+
+export default function ProfilePage() {
+    const dispatch = useAppDispatch();
+    const router = useRouter();
+    const queryClient = useQueryClient();
+    const { user: authUser } = useAppSelector((state) => state.auth);
+
+    const [nameForm, setNameForm] = useState({ name: authUser?.name || "" });
+    const [passwordForm, setPasswordForm] = useState({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    });
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // Fetch Profile
+    const { data, isLoading } = useQuery({
+        queryKey: ["profile"],
+        queryFn: () => getProfile().then((res) => res.data.user),
+    });
+
+    useEffect(() => {
+        if (data?.name) {
+            setNameForm({ name: data.name });
+        }
+    }, [data]);
+
+    // Update Profile
+    const { mutate: updateName, isPending: isUpdating } = useMutation({
+        mutationFn: () => updateProfile({ name: nameForm.name }),
+        onSuccess: () => {
+            toast.success("Profile updated! ✅");
+            queryClient.invalidateQueries({ queryKey: ["profile"] });
+        },
+        onError: () => toast.error("Failed to update profile!"),
+    });
+
+    // Change Password
+    const { mutate: changePass, isPending: isChangingPass } = useMutation({
+        mutationFn: () => changePassword({
+            oldPassword: passwordForm.oldPassword,
+            newPassword: passwordForm.newPassword,
+        }),
+        onSuccess: () => {
+            toast.success("Password changed! 🔒");
+            setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+        },
+        onError: (error: any) => toast.error(error?.response?.data?.message || "Failed to change password!"),
+    });
+
+    // Delete Account
+    const { mutate: deleteAccount, isPending: isDeleting } = useMutation({
+        mutationFn: () => deleteMyAccount(),
+        onSuccess: () => {
+            toast.success("Account deleted!");
+            dispatch(logout());
+            router.push("/login");
+        },
+        onError: () => toast.error("Failed to delete account!"),
+    });
+
+    const handlePasswordSubmit = () => {
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            toast.error("Passwords do not match!");
+            return;
+        }
+        if (passwordForm.newPassword.length < 6) {
+            toast.error("Password must be at least 6 characters!");
+            return;
+        }
+        changePass();
+    };
+
+    const roleColor = (role: string) => {
+        switch (role) {
+            case "admin": return "bg-yellow-100 text-yellow-700";
+            case "relationship_manager": return "bg-blue-100 text-blue-700";
+            default: return "bg-gray-100 text-gray-600";
+        }
+    };
+
+    return (
+
+        <ProtectedRoute>
+            <div className="flex-1 px-2 space-y-6 max-w-3xl">
+
+                {/* Header */}
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800">My Profile</h1>
+                    <p className="text-gray-400 text-sm">Manage your account settings</p>
+                </div>
+                <>
+                    {/* Profile Card */}
+                    <div className="bg-white rounded-2xl shadow-sm p-6">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-2xl">
+                                {data?.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-800">{data?.name}</h2>
+                                <p className="text-gray-400 text-sm">{data?.email}</p>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium mt-1 inline-block ${roleColor(data?.role)}`}>
+                                    {data?.role}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Update Name */}
+                        <div className="border-t pt-5">
+                            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+                                <User size={16} />
+                                Update Name
+                            </h3>
+                            <div className="flex gap-3">
+                                <div className="flex-1">
+                                    <InputField
+                                        label="Full Name"
+                                        type="text"
+                                        placeholder="Enter your name"
+                                        value={nameForm.name}
+                                        onChange={(e) => setNameForm({ name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="flex items-end">
+                                    <Button
+                                        isLoading={isUpdating}
+                                        loadingText="Saving..."
+                                        onClick={() => updateName()}
+                                        variant="black"
+                                    >
+                                        <Save size={16} />
+                                        Save
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Change Password */}
+                    <div className="bg-white rounded-2xl shadow-sm p-6">
+                        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+                            <Lock size={16} />
+                            Change Password
+                        </h3>
+                        <div className="space-y-4">
+                            <InputField
+                                label="Current Password"
+                                type="password"
+                                placeholder="••••••••"
+                                value={passwordForm.oldPassword}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                            />
+                            <InputField
+                                label="New Password"
+                                type="password"
+                                placeholder="••••••••"
+                                value={passwordForm.newPassword}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                            />
+                            <InputField
+                                label="Confirm New Password"
+                                type="password"
+                                placeholder="••••••••"
+                                value={passwordForm.confirmPassword}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                            />
+                            <Button
+                                isLoading={isChangingPass}
+                                loadingText="Changing..."
+                                onClick={handlePasswordSubmit}
+                                variant="black"
+                            >
+                                <Lock size={16} />
+                                Change Password
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Danger Zone */}
+                    <div className="bg-white rounded-2xl shadow-sm p-6 border border-red-100">
+                        <h3 className="text-sm font-semibold text-red-500 flex items-center gap-2 mb-2">
+                            <ShieldAlert size={16} />
+                            Danger Zone
+                        </h3>
+                        <p className="text-gray-400 text-xs mb-4">
+                            Once you delete your account, there is no going back. Please be certain.
+                        </p>
+
+                        {!showDeleteConfirm ? (
+                            <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>
+                                <Trash2 size={16} />
+                                Delete Account
+                            </Button>
+                        ) : (
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="danger"
+                                    isLoading={isDeleting}
+                                    loadingText="Deleting..."
+                                    onClick={() => deleteAccount()}
+                                >
+                                    Yes, Delete My Account
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </>
+            </div>
+        </ProtectedRoute>
+    );
+}

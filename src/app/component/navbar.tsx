@@ -1,17 +1,24 @@
 "use client";
 import { Bell, Search } from "lucide-react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useAppSelector } from "@/store/hooks";
 
 export default function Navbar() {
+  const { user } = useAppSelector((state) => state.auth);
   const [userName, setUserName] = useState("Admin");
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      const parsed = JSON.parse(user);
-      setUserName(parsed.name || "Admin");
+    if (user?.name) {
+      setUserName(user.name);
+    } else {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setUserName(parsed.name || "Admin");
+      }
     }
-  }, []);
+  }, [user]);
 
   return (
     <div className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
@@ -33,15 +40,15 @@ export default function Navbar() {
           <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></span>
         </button>
 
-        {/* User Avatar */}
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-yellow-400 rounded-full flex items-center justify-center">
+        {/* User Avatar — Profile Link */}
+        <Link href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer">
+          <div className="w-9 h-9 bg-yellow-400 rounded-full flex items-center justify-center hover:bg-yellow-500 transition">
             <span className="text-gray-900 font-bold text-sm">
               {userName.charAt(0).toUpperCase()}
             </span>
           </div>
           <span className="text-sm font-medium text-gray-700">{userName}</span>
-        </div>
+        </Link>
       </div>
     </div>
   );

@@ -27,10 +27,14 @@ export type Session = {
 export type StatCardProps = {
   title: string;
   value: string;
-  change: string;
+  change?: string;
   icon: any;
-  bg: string;
-  text: string;
+  iconColor: any;
+  bg?: string;
+  text?: string;
+  progress?: number;
+  iconBg?: string;
+  sub?: any;
 };
 
 export type StatusBadgeProps = {
