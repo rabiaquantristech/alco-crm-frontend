@@ -14,8 +14,8 @@ function AuthCallbackInner() {
   useEffect(() => {
     const token = searchParams.get("token");
     const userStr = searchParams.get("user");
-    
-        console.log("Received token:", token);
+
+    console.log("Received token:", token);
     console.log("Received user:", userStr);
 
     if (!token || !userStr) {

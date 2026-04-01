@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function ProtectedRoute({
   children,
@@ -8,16 +8,23 @@ export default function ProtectedRoute({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Auth callback pe protect mat karo
+    if (pathname === "/auth/callback") {
+      setIsLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem("token");
     if (!token) {
       router.push("/login");
     } else {
       setIsLoading(false);
     }
-  }, [router]);
+  }, [router, pathname]);
 
   if (isLoading) {
     return (
