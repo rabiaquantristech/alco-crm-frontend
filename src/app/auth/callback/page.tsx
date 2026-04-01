@@ -14,35 +14,38 @@ function AuthCallbackInner() {
   useEffect(() => {
     const token = searchParams.get("token");
     const userStr = searchParams.get("user");
+    
+    console.log("Received token:", token);
+    console.log("Received user:", userStr);
 
-    if (!token || !userStr) {
-      toast.error("Auth failed!");
-      router.replace("/login");
-      return;
-    }
+    // if (!token || !userStr) {
+    //   toast.error("Auth failed!");
+    //   router.replace("/login");
+    //   return;
+    // }
 
-    try {
-      const user = JSON.parse(decodeURIComponent(userStr));
+    // try {
+    //   const user = JSON.parse(decodeURIComponent(userStr));
 
-      // Pehle localStorage mein save karo
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+    //   // Pehle localStorage mein save karo
+    //   localStorage.setItem("token", token);
+    //   localStorage.setItem("user", JSON.stringify(user));
 
-      // Phir Redux mein save karo
-      dispatch(setCredentials({ user, token }));
+    //   // Phir Redux mein save karo
+    //   dispatch(setCredentials({ user, token }));
 
-      toast.success("Login successful 🎉");
+    //   toast.success("Login successful 🎉");
 
-      // Thoda delay do taake Redux state set ho jaye
-      setTimeout(() => {
-        router.replace("/dashboard");
-      }, 500);
+    //   // Thoda delay do taake Redux state set ho jaye
+    //   setTimeout(() => {
+    //     router.replace("/dashboard");
+    //   }, 500);
 
-    } catch (err) {
+    // } catch (err) {
       // console.error(err);
       // toast.error("Login failed!");
       // router.replace("/login");
-    }
+    // }
   }, [searchParams]);
 
   return (

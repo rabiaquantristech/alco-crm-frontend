@@ -16,7 +16,7 @@ if (pathname === "/login") {
   }
 
   return (
-    <ProtectedRoute>
+    // <ProtectedRoute>
       <div className="flex min-h-screen bg-gray-100">
         <Sidebar />
         <div className="flex-1 flex flex-col">
@@ -26,6 +26,6 @@ if (pathname === "/login") {
           </main>
         </div>
       </div>
-    </ProtectedRoute>
+    // </ProtectedRoute>
   );
 }
