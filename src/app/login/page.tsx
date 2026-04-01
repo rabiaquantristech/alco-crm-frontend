@@ -110,7 +110,7 @@ export default function LoginPage() {
           </button>
 
           {/* LinkedIn */}
-          {/* <button
+          <button
             type="button"
             onClick={() => {
               window.location.href = `${process.env.NEXT_PUBLIC_AUTH_API_URL}/auth/linkedin`;
@@ -119,7 +119,7 @@ export default function LoginPage() {
           >
             <FaLinkedin size={20} className="text-blue-600" />
             Continue with LinkedIn
-          </button> */}
+          </button>
         </div>
 
       </div>
