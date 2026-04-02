@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import MiniLogo from "@/assets/mini-logo-white.webp";
+import Popup from "@/app/component/ui/popup/popup";
+import { useState } from "react";
 
 const menuItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -30,6 +32,7 @@ const menuItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [showLogout, setShowLogout] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -89,13 +92,24 @@ export default function Sidebar() {
       {/* Logout */}
       <div className="p-4 border-t border-gray-700">
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogout(true)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-all w-full"
         >
           <LogOut size={18} />
           <span className="text-sm">Logout</span>
         </button>
       </div>
+
+      <Popup
+        isOpen={showLogout}
+        onClose={() => setShowLogout(false)}
+        onConfirm={handleLogout}
+        variant="info"
+        title="Log Out"
+        description="Are you sure you want to log out? You will need to sign in again to access your dashboard."
+        confirmText="Yes, Log Out"
+        cancelText="Stay"
+      />
     </div>
   );
 }

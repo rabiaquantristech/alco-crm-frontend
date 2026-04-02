@@ -73,22 +73,22 @@ export default function RelationshipManagerDashboard() {
       </div>
 
       {/* Stats */}
-      {/* <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         {stats.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}
-      </div> */}
+      </div>
 
       {/* Pipeline */}
-      {/* <LeadPipeline data={pipeline} /> */}
+      <LeadPipeline data={pipeline} />
 
       {/* Quick Stats */}
-      {/* <QuickStats
+      <QuickStats
         data={[
           { label: "Conversion Rate", value: "32%", color: "text-green-600" },
           { label: "Follow-ups Today", value: "12", color: "text-blue-600" },
         ]}
-      /> */}
+      />
 
       {/* Sessions */}
       {/* <SessionsTable data={sessions} /> */}

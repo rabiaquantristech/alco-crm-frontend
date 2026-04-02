@@ -5,13 +5,12 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/authSlice";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/app/component/protected-route";
-import Sidebar from "@/app/component/sidebar";
-import Navbar from "@/app/component/navbar";
 import Button from "@/app/component/ui/button";
 import InputField from "@/app/component/ui/inputField";
 import toast from "react-hot-toast";
 import { User, Lock, Trash2, Save, ShieldAlert } from "lucide-react";
 import { changePassword, deleteMyAccount, getProfile, updateProfile } from "@/utils/api";
+import Popup from "@/app/component/ui/popup/popup";
 
 export default function ProfilePage() {
     const dispatch = useAppDispatch();
@@ -26,6 +25,7 @@ export default function ProfilePage() {
         confirmPassword: "",
     });
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
     // Fetch Profile
     const { data, isLoading } = useQuery({
@@ -82,7 +82,7 @@ export default function ProfilePage() {
             toast.error("Password must be at least 6 characters!");
             return;
         }
-        changePass();
+        setShowPasswordConfirm(true); // ✅ pehle confirm lo
     };
 
     const roleColor = (role: string) => {
@@ -223,6 +223,38 @@ export default function ProfilePage() {
                                 </Button>
                             </div>
                         )}
+
+                        {/* ✅ Delete Account Popup */}
+                        <Popup
+                            isOpen={showDeleteConfirm}
+                            onClose={() => setShowDeleteConfirm(false)}
+                            onConfirm={() => deleteAccount()}
+                            variant="danger"
+                            title="Delete Account"
+                            description={
+                                <>
+                                    Are you sure you want to permanently delete your account?{" "}
+                                    <span className="font-semibold text-red-500">This action cannot be undone.</span>{" "}
+                                    All your data will be removed from the system immediately.
+                                </>
+                            }
+                            confirmText="Yes, Delete My Account"
+                            cancelText="Cancel"
+                            isLoading={isDeleting}
+                            loadingText="Deleting..."
+                        />
+
+                        {/* ✅ Password Change Popup */}
+                        <Popup
+                            isOpen={showPasswordConfirm}
+                            onClose={() => setShowPasswordConfirm(false)}
+                            onConfirm={() => { setShowPasswordConfirm(false); changePass(); }}
+                            variant="warning"
+                            title="Change Password"
+                            description="Are you sure you want to change your password? Your current password will no longer work after this."
+                            confirmText="Yes, Change Password"
+                            cancelText="Cancel"
+                        />
                     </div>
                 </>
             </div>

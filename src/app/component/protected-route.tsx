@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useAppDispatch } from "@/store/hooks";
+import { setCredentials, logout } from "@/store/authSlice";
+import { getMe } from "@/utils/api";
 
 export default function ProtectedRoute({
   children,
@@ -9,6 +12,7 @@ export default function ProtectedRoute({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -19,12 +23,28 @@ export default function ProtectedRoute({
     }
 
     const token = localStorage.getItem("token");
+
     if (!token) {
       router.push("/login");
-    } else {
-      setIsLoading(false);
+      return;
     }
-  }, [router, pathname]);
+
+    // ✅ Token hai — getMe se fresh user data lo
+    getMe()
+      .then((res) => {
+        dispatch(setCredentials({
+          user: res.data.user,
+          token: token,
+        }));
+        setIsLoading(false);
+      })
+      .catch(() => {
+        // Token invalid ya expire — logout karo
+        dispatch(logout());
+        router.push("/login");
+      });
+
+  }, [pathname]);
 
   if (isLoading) {
     return (

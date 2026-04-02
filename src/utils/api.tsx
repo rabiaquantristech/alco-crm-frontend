@@ -80,6 +80,9 @@ API.interceptors.response.use(
 // Auth APIs
 export const loginUser = (data: LoginData) => API.post("/api/auth/login", data);
 export const registerUser = (data: RegisterData) => API.post("/api/auth/register", data);
+export const forgotPassword = (data: { email: string }) => API.post("/api/auth/forgot-password", data);
+export const resetPassword = (data: { email: string; otp: string; newPassword: string }) => API.post("/api/auth/reset-password", data);
+export const getMe = () => API.get("/api/auth/me");
 
 // Admin APIs
 export const adminGetAllUsers = () => API.get("/api/admin/users");
@@ -87,6 +90,8 @@ export const adminGetUserById = (id: string) => API.get(`/api/admin/users/${id}`
 export const adminUpdateUser = (id: string, data: UpdateUserData) => API.patch(`/api/admin/users/${id}`, data);
 export const adminDeleteUser = (id: string) => API.delete(`/api/admin/users/${id}`);
 export const adminDeleteAllUsers = () => API.delete("/api/admin/users");
+export const adminCreateUser = (data: any) => API.post("/api/admin/users", data);
+export const adminAssignRole = (id: string, role: string) => API.patch(`/api/admin/users/${id}/role`, { role });
 
 // User Profile APIs
 export const getProfile = () => API.get("/api/users/profile");

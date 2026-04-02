@@ -12,7 +12,7 @@ export default function DashboardPage() {
     switch (user?.role) {
       case "admin":
         return <AdminDashboard />;
-      case "relationship_manager":
+      case "relationship-manager":
         return <RMDashboard />;
       default:
         return <UserDashboard />;

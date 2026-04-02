@@ -5,6 +5,7 @@ export type InputFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: FieldError;
   rightIcon?: React.ReactNode;
+  disabled?: boolean
 };
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -45,16 +46,28 @@ export type ModalField = {
   inputType?: string; // "text" | "email" | "password" | "number"
   options?: { label: string; value: string }[]; // select ke liye
   required?: boolean;
+  disabled?: boolean;
+};
+
+export type ModalTab = {
+  key: string;
+  label: string;
+  fields: ModalField[];
+  onSubmit?: (data: Record<string, string | boolean>) => void;
 };
 
 export  type ModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  subtitle?: string; 
   title: string;
   fields: ModalField[];
   initialValues?: Record<string, string | boolean>;
   onSubmit: (data: Record<string, string | boolean>) => void;
   isLoading?: boolean;
   mode?: "add" | "edit";
+  step?: "forgot" | "reset";  
+  onBack?: () => void;  
+  tabs?: ModalTab[];       
 };
 

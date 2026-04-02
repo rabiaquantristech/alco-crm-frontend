@@ -29,7 +29,7 @@ export type StatCardProps = {
   value: string;
   change?: string;
   icon: any;
-  iconColor: any;
+  iconColor?: any;
   bg?: string;
   text?: string;
   progress?: number;

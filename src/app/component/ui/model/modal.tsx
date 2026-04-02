@@ -1,5 +1,5 @@
 "use client";
-import { X } from "lucide-react";
+import { X, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Input from "@/app/component/ui/inputField";
 import Select from "@/app/component/ui/select";
 import Textarea from "@/app/component/ui/textarea";
@@ -12,49 +12,87 @@ export default function Modal({
   isOpen,
   onClose,
   title,
+  subtitle,
   fields,
   initialValues = {},
   onSubmit,
   isLoading = false,
   mode = "add",
+  step,
+  onBack,
+  // ✅ Tabs ke liye naye props
+  tabs,
 }: ModalProps) {
-  const [form, setForm] = useState<Record<string, string | boolean>>(
-    fields.reduce((acc, field) => {
-      acc[field.name] = initialValues[field.name] ?? (field.type === "checkbox" ? false : "");
-      return acc;
-    }, {} as Record<string, string | boolean>)
-  );
+  // const [form, setForm] = useState<Record<string, string | boolean>>(
+  //   fields.reduce((acc, field) => {
+  //     acc[field.name] = initialValues[field.name] ?? (field.type === "checkbox" ? false : "");
+  //     return acc;
+  //   }, {} as Record<string, string | boolean>)
+  // );
+  // ✅ Fix — pehle initialValues se seed karo, phir fields se
+  const [form, setForm] = useState<Record<string, string | boolean>>(() => {
+    // Saari possible fields collect karo (regular + tabs dono)
+    const allFields = tabs
+      ? tabs.flatMap((t) => t.fields)
+      : fields;
 
-  // initialValues change hone pe form reset karo
-  const handleOpen = () => {
-    setForm(
-      fields.reduce((acc, field) => {
-        acc[field.name] = initialValues[field.name] ?? (field.type === "checkbox" ? false : "");
-        return acc;
-      }, {} as Record<string, string | boolean>)
-    );
+    const base = allFields.reduce((acc, field) => {
+      acc[field.name] = field.type === "checkbox" ? false : "";
+      return acc;
+    }, {} as Record<string, string | boolean>);
+
+    // initialValues se override karo
+    return { ...base, ...initialValues };
+  });
+
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
+  // ✅ Active tab state
+  const [activeTab, setActiveTab] = useState(tabs?.[0]?.key || "");
+
+  const togglePassword = (name: string) => {
+    setShowPasswords((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
   if (!isOpen) return null;
 
+  // ✅ Active tab ki fields aur onSubmit
+  const currentTab = tabs?.find((t) => t.key === activeTab);
+  const activeFields = tabs ? (currentTab?.fields || []) : fields;
   const handleSubmit = () => {
-    onSubmit(form);
+    if (tabs && currentTab?.onSubmit) {
+      currentTab.onSubmit(form);
+    } else {
+      onSubmit(form);
+    }
   };
 
   const renderField = (field: ModalField) => {
     switch (field.type) {
       case "input":
+        const isPasswordField = field.inputType === "password";
+        const isVisible = showPasswords[field.name];
         return (
           <Input
             key={field.name}
             label={field.label}
-            type={field.inputType || "text"}
+            type={isPasswordField ? (isVisible ? "text" : "password") : (field.inputType || "text")}
             placeholder={field.placeholder}
             value={form[field.name] as string}
             onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+            disabled={field.disabled}
+            rightIcon={
+              isPasswordField ? (
+                <button
+                  type="button"
+                  onClick={() => togglePassword(field.name)}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                >
+                  {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              ) : undefined
+            }
           />
         );
-
       case "select":
         return (
           <Select
@@ -63,9 +101,9 @@ export default function Modal({
             options={field.options || []}
             value={form[field.name] as string}
             onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+            disabled={field.disabled}
           />
         );
-
       case "textarea":
         return (
           <Textarea
@@ -74,9 +112,9 @@ export default function Modal({
             placeholder={field.placeholder}
             value={form[field.name] as string}
             onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
+            disabled={field.disabled}
           />
         );
-
       case "checkbox":
         return (
           <Checkbox
@@ -84,6 +122,7 @@ export default function Modal({
             label={field.label}
             checked={form[field.name] as boolean}
             onChange={(e) => setForm({ ...form, [field.name]: e.target.checked })}
+            disabled={field.disabled}
           />
         );
     }
@@ -95,15 +134,43 @@ export default function Modal({
 
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <button onClick={onBack} className="text-gray-400 hover:text-gray-600 transition">
+                <ArrowLeft size={18} />
+              </button>
+            )}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+              {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
+            </div>
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X size={20} />
           </button>
         </div>
 
+        {/* ✅ Tabs — sirf tab mode mein dikhenge */}
+        {tabs && (
+          <div className="flex border-b px-6">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`py-3 px-4 text-sm font-medium transition border-b-2 -mb-px ${activeTab === tab.key
+                    ? "border-yellow-400 text-yellow-600"
+                    : "border-transparent text-gray-400 hover:text-gray-600"
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Fields */}
         <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-          {fields.map((field) => renderField(field))}
+          {activeFields.map((field) => renderField(field))}
         </div>
 
         {/* Footer */}
@@ -114,10 +181,18 @@ export default function Modal({
           <Button
             fullWidth
             isLoading={isLoading}
-            loadingText={mode === "edit" ? "Saving..." : "Adding..."}
+            loadingText={
+              mode === "edit" ? "Saving..." :
+                step === "forgot" ? "Sending OTP..." :
+                  step === "reset" ? "Resetting..." :
+                    "Adding..."
+            }
             onClick={handleSubmit}
           >
-            {mode === "edit" ? "Save Changes" : "Add"}
+            {mode === "edit" ? "Save Changes" :
+              step === "forgot" ? "Send OTP" :
+                step === "reset" ? "Reset Password" :
+                  "Add"}
           </Button>
         </div>
 
