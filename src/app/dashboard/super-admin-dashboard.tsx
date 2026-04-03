@@ -27,7 +27,7 @@ const addUserFields: ModalField[] = [
   },
 ];
 
-export default function AdminPage() {
+export default function SuperAdminDashboard () {
   const queryClient = useQueryClient();
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -125,7 +125,7 @@ export default function AdminPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             <UserCog size={24} />
-            Admin Panel
+            Super Admin Panel
           </h1>
           <p className="text-gray-400 text-sm">Manage all users and their roles</p>
         </div>
@@ -275,7 +275,7 @@ export default function AdminPage() {
                   name: "role", label: "Role", type: "select",
                   options: [
                     { label: "User", value: "user" },
-                    // { label: "Admin", value: "admin", disabled: authUser?.role === "admin" }, 
+                    // { label: "Admin", value: "admin", disabled: authUser?.role === "super_admin" }, 
                     { label: "sales Manager", value: "sales_manager" },
                   ],
                 },

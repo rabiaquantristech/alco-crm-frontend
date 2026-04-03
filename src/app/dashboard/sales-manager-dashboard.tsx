@@ -275,7 +275,7 @@ export default function AdminPage() {
                   name: "role", label: "Role", type: "select",
                   options: [
                     { label: "User", value: "user" },
-                    // { label: "Admin", value: "admin", disabled: authUser?.role === "admin" }, 
+                    { label: "Admin", value: "admin", disabled: authUser?.role === "admin" }, 
                     { label: "sales Manager", value: "sales_manager" },
                   ],
                 },

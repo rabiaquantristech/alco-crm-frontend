@@ -27,7 +27,7 @@ export default function Button({
         ${variants[variant]}
         ${fullWidth ? "w-full" : ""}
         font-semibold py-2.5 px-5 rounded-lg transition 
-        flex items-center justify-center gap-2 
+        flex items-center justify-center gap-2 cursor-pointer
         disabled:opacity-70 disabled:cursor-not-allowed
       `}
     >

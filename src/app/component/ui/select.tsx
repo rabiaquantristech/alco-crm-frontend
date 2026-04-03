@@ -11,7 +11,9 @@ export default function Select({ label, options, error, ...props }: SelectProps)
           ${error ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-yellow-400"}`}
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+          <option key={opt.value} value={opt.value} disabled={opt.disabled} className={opt.disabled ? "text-gray-400 cursor-not-allowed" : "cursor-pointer"}>
+            {opt.label}
+          </option>
         ))}
       </select>
       {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}

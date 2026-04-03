@@ -32,12 +32,18 @@ export default function ProtectedRoute({
     // ✅ Token hai — getMe se fresh user data lo
     getMe()
       .then((res) => {
+        const userData = res.data.user;
         dispatch(setCredentials({
-          user: res.data.user,
+          user: userData,
           token: token,
         }));
+        // ✅ Role based redirect — sirf login ke baad
+        if (pathname === "/dashboard") {
+          // Already sahi jagah hai — kuch nahi karo
+        }
         setIsLoading(false);
       })
+
       .catch(() => {
         // Token invalid ya expire — logout karo
         dispatch(logout());

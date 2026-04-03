@@ -23,6 +23,7 @@ export type CheckboxProps = InputHTMLAttributes<HTMLInputElement> & {
 export type Option = {
   label: string;
   value: string;
+  disabled?: boolean;
 };
 
 export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
@@ -44,9 +45,10 @@ export type ModalField = {
   type: FieldType;
   placeholder?: string;
   inputType?: string; // "text" | "email" | "password" | "number"
-  options?: { label: string; value: string }[]; // select ke liye
+  options?: { label: string; value: string, disabled?: boolean }[]; // select ke liye
   required?: boolean;
   disabled?: boolean;
+  autoComplete?: string; 
 };
 
 export type ModalTab = {

@@ -80,6 +80,7 @@ export default function Modal({
             value={form[field.name] as string}
             onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
             disabled={field.disabled}
+            autoComplete={isPasswordField ? "new-password" : "off"}
             rightIcon={
               isPasswordField ? (
                 <button
@@ -101,7 +102,7 @@ export default function Modal({
             options={field.options || []}
             value={form[field.name] as string}
             onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
-            disabled={field.disabled}
+            disabled={field?.disabled}
           />
         );
       case "textarea":
