@@ -11,6 +11,8 @@ import { ModalField } from "@/types/ui";
 import Button from "@/app/component/ui/button";
 import Popup from "../component/ui/popup/popup";
 import { useAppSelector } from "@/store/hooks";
+import PageHeader from "../component/dashboard/page-header";
+import UsersTable from "../component/dashboard/user-table";
 
 // Add fields
 const addUserFields: ModalField[] = [
@@ -27,7 +29,7 @@ const addUserFields: ModalField[] = [
   },
 ];
 
-export default function SuperAdminDashboard () {
+export default function SuperAdminDashboard() {
   const queryClient = useQueryClient();
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -113,117 +115,29 @@ export default function SuperAdminDashboard () {
     deleteUser(id);
   };
 
-  // const roleColor = (role: string) =>
-  //   role === "super_admin"
-  //     ? "bg-yellow-100 text-yellow-700"
-  //     : "bg-gray-100 text-gray-600";
-
   return (
     <ProtectedRoute>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <UserCog size={24} />
-            Super Admin Panel
-          </h1>
-          <p className="text-gray-400 text-sm">Manage all users and their roles</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsAddOpen(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center hover:opacity-80 transition"
-            style={{ background: "#EEEDFE" }}
-            title="Add User"
-          >
-            <Plus size={16} color="#534AB7" />
-          </button>
-
-          <button
-            onClick={() => setShowDeleteAll(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center hover:opacity-80 transition"
-            style={{ background: "#FAEEDA" }}
-            title="Delete All Users"
-          >
-            <Trash2 size={16} color="#854F0B" />
-          </button>
-
-          <div className="bg-white rounded-xl px-4 py-2 shadow-sm text-sm text-gray-600">
-            Total Users:{" "}
-            <span className="font-bold text-gray-900">{data?.count ?? 0}</span>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Super Admin Panel"
+        subtitle="Manage all users and their roles"
+        titleIcon={<UserCog size={24} />}
+        totalCount={data?.count ?? 0}
+        onAdd={() => setIsAddOpen(true)}
+        onDeleteAll={() => setShowDeleteAll(true)}
+      />
 
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        ) : isError ? (
-          <div className="text-center py-20 text-red-500">
-            Failed to load users. Please try again.
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-gray-400 text-left">
-                <th className="px-6 py-4 font-medium">#</th>
-                <th className="px-6 py-4 font-medium">Name</th>
-                <th className="px-6 py-4 font-medium">Email</th>
-                <th className="px-6 py-4 font-medium">Role</th>
-                <th className="px-6 py-4 font-medium">Joined</th>
-                <th className="px-6 py-4 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.users?.map((user, index) => (
-                <tr key={user._id} className="border-b last:border-0 hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 text-gray-400">{index + 1}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-xs">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-medium text-gray-800">{user.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{user.email}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${user?.role === "super_admin" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setEditingUser(user)}
-                        className={`p-2 rounded-lg text-gray-400 ${user?.role !== "super_admin" && "hover:text-yellow-600  hover:bg-yellow-50"} transition`}
-                        disabled={user?.role === "super_admin" ? true : false}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user._id)}
-                        disabled={user?.role === "super_admin" ? true : isDeleting && deletingId === user._id}
-                        className={`p-2 rounded-lg  text-gray-400 ${user?.role !== "super_admin" && "hover:text-red-500 hover:bg-red-50"} transition disabled:opacity-50`}
-                        
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <UsersTable
+        users={data?.users || []}
+        isLoading={isLoading}
+        isError={isError}
+        onEdit={(user) => setEditingUser(user)}
+        onDelete={(id) => handleDelete(id)}
+        deletingId={deletingId}
+        isDeleting={isDeleting}
+        disableRole="admin"
+      />
 
       {/* Add User Modal */}
       <Modal
@@ -276,9 +190,11 @@ export default function SuperAdminDashboard () {
                 {
                   name: "role", label: "Role", type: "select",
                   options: [
+                    { label: "Admin", value: "admin" },
+                    { label: "Sales Manager", value: "sales_manager" },
+                    { label: "Sales Rep", value: "sales_rep" },
+                    { label: "Support", value: "support" },
                     { label: "User", value: "user" },
-                    // { label: "Admin", value: "admin", disabled: authUser?.role === "super_admin" }, 
-                    { label: "sales Manager", value: "sales_manager" },
                   ],
                 },
               ],

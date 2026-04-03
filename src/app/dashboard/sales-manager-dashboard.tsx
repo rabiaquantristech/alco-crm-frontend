@@ -2,11 +2,13 @@
 
 import {
   Users, TrendingUp, Calendar,
+  UserCog,
 } from "lucide-react";
-import { StatCard }from "../component/dashboard/stat-card";
+import { StatCard } from "../component/dashboard/stat-card";
 import LeadPipeline from "../component/dashboard/lead-pipeline";
 import QuickStats from "../component/dashboard/quick-stats";
 import SessionsTable from "../component/dashboard/sessions-table";
+import PageHeader from "../component/dashboard/page-header";
 
 
 const stats = [
@@ -63,14 +65,14 @@ export default function SalesManagerDashboard() {
     <div className="space-y-6">
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">
-          Relationship Manager Dashboard
-        </h1>
-        <p className="text-gray-500 text-sm">
-          Manage your leads and sessions efficiently
-        </p>
-      </div>
+      <PageHeader
+        title="Relationship Manager Dashboard"
+        subtitle="Manage your leads and sessions efficiently"
+        titleIcon={<UserCog size={24} />}
+      // totalCount={data?.count ?? 0}
+      // onAdd={() => setIsAddOpen(true)}
+      // onDeleteAll={() => setShowDeleteAll(true)}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">

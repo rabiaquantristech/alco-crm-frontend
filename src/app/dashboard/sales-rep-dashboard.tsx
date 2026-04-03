@@ -1,6 +1,7 @@
 "use client";
 import ProtectedRoute from "@/app/component/protected-route";
 import { UserCog } from "lucide-react";
+import PageHeader from "../component/dashboard/page-header";
 
 
 
@@ -11,15 +12,14 @@ export default function SalesRepDashboard() {
   return (
     <ProtectedRoute>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <UserCog size={24} />
-            Sales Representative Dashboard
-          </h1>
-          <p className="text-gray-400 text-sm">Manage your sales activities and performance</p>
-        </div>
-      </div>
+      <PageHeader
+              title="Sales Representative Dashboard"
+              subtitle="Manage your leads and sessions efficiently"
+              titleIcon={<UserCog size={24} />}
+            // totalCount={data?.count ?? 0}
+            // onAdd={() => setIsAddOpen(true)}
+            // onDeleteAll={() => setShowDeleteAll(true)}
+            />
     </ProtectedRoute>
   );
 }

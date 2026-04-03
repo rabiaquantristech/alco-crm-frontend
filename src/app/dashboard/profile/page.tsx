@@ -8,9 +8,10 @@ import ProtectedRoute from "@/app/component/protected-route";
 import Button from "@/app/component/ui/button";
 import InputField from "@/app/component/ui/inputField";
 import toast from "react-hot-toast";
-import { User, Lock, Trash2, Save, ShieldAlert } from "lucide-react";
+import { User, Lock, Trash2, Save, ShieldAlert, UserRoundCheck } from "lucide-react";
 import { changePassword, deleteMyAccount, getProfile, updateProfile } from "@/utils/api";
 import Popup from "@/app/component/ui/popup/popup";
+import PageHeader from "@/app/component/dashboard/page-header";
 
 export default function ProfilePage() {
     const dispatch = useAppDispatch();
@@ -98,11 +99,13 @@ export default function ProfilePage() {
         <ProtectedRoute>
             <div className="flex-1 px-2 space-y-6 max-w-3xl">
 
-                {/* Header */}
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">My Profile</h1>
-                    <p className="text-gray-400 text-sm">Manage your account settings</p>
-                </div>
+                <PageHeader
+                    title="Profile"
+                    subtitle="Manage your profile settings"
+                    titleIcon={<UserRoundCheck size={24} />}
+                // onAdd={() => setIsAddOpen(true)}
+                // onDeleteAll={() => setShowDeleteAll(true)}
+                />
                 <>
                     {/* Profile Card */}
                     <div className="bg-white rounded-2xl shadow-sm p-6">

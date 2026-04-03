@@ -196,8 +196,9 @@
 //   Users, TrendingUp, DollarSign, Award,
 // } from "lucide-react";
 
-import { BookOpen, ClipboardList, Video, TrendingUp } from "lucide-react";
+import { BookOpen, ClipboardList, Video, TrendingUp, UserCog } from "lucide-react";
 import { StatCarduser } from "../component/dashboard/stat-card";
+import PageHeader from "../component/dashboard/page-header";
 
 
 
@@ -206,13 +207,19 @@ const stats = [
     title: "Enrolled courses", value: "4", sub: "2 in progress · 2 not started", icon: BookOpen, iconBg: "#EEEDFE",
     iconColor: "#534AB7",
   },
-  { title: "Assignments due", value: "3", sub: "1 overdue · next due Apr 5", icon: ClipboardList, iconBg: "#FAEEDA",
-      iconColor: "#854F0B", },
-  { title: "Live sessions", value: "2", sub: "Next: Apr 3 at 2:00 PM", icon: Video, iconBg: "#E1F5EE",
-      iconColor: "#0F6E56", },
-  { title: "Overall progress", value: "62%", sub: "70%", icon: TrendingUp, 
-      iconBg: "#E6F1FB",
-      iconColor: "#185FA5", },
+  {
+    title: "Assignments due", value: "3", sub: "1 overdue · next due Apr 5", icon: ClipboardList, iconBg: "#FAEEDA",
+    iconColor: "#854F0B",
+  },
+  {
+    title: "Live sessions", value: "2", sub: "Next: Apr 3 at 2:00 PM", icon: Video, iconBg: "#E1F5EE",
+    iconColor: "#0F6E56",
+  },
+  {
+    title: "Overall progress", value: "62%", sub: "70%", icon: TrendingUp,
+    iconBg: "#E6F1FB",
+    iconColor: "#185FA5",
+  },
 ];
 
 const pipeline = [
@@ -243,12 +250,14 @@ export default function UserDashboard() {
     <div className="space-y-6">
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-500 text-sm">
-          Welcome back! Here's what's happening with your coaching business.
-        </p>
-      </div>
+      <PageHeader
+        title="User Dashboard"
+        subtitle="Welcome back! Here's what's happening with your coaching business."
+        titleIcon={<UserCog size={24} />}
+      // totalCount={data?.count ?? 0}
+      // onAdd={() => setIsAddOpen(true)}
+      // onDeleteAll={() => setShowDeleteAll(true)}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
