@@ -16,7 +16,7 @@ export type UpdateUserData = {
   role?: string;
 }
 
-export type UserRole = "user" | "admin" | "sales_manager";
+export type UserRole = "super_admin" | "admin" | "sales_manager" | "sales_rep" | "support" | "user";
 
 export type User = {
   _id: string;

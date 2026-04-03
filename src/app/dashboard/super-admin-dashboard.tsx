@@ -113,10 +113,10 @@ export default function SuperAdminDashboard () {
     deleteUser(id);
   };
 
-  const roleColor = (role: string) =>
-    role === "admin"
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-gray-100 text-gray-600";
+  // const roleColor = (role: string) =>
+  //   role === "super_admin"
+  //     ? "bg-yellow-100 text-yellow-700"
+  //     : "bg-gray-100 text-gray-600";
 
   return (
     <ProtectedRoute>
@@ -192,7 +192,7 @@ export default function SuperAdminDashboard () {
                   </td>
                   <td className="px-6 py-4 text-gray-500">{user.email}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${roleColor(user.role)}`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${user?.role === "super_admin" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"}`}>
                       {user.role}
                     </span>
                   </td>
@@ -203,14 +203,16 @@ export default function SuperAdminDashboard () {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setEditingUser(user)}
-                        className="p-2 rounded-lg hover:bg-yellow-50 text-gray-400 hover:text-yellow-600 transition"
+                        className={`p-2 rounded-lg text-gray-400 ${user?.role !== "super_admin" && "hover:text-yellow-600  hover:bg-yellow-50"} transition`}
+                        disabled={user?.role === "super_admin" ? true : false}
                       >
                         <Pencil size={15} />
                       </button>
                       <button
                         onClick={() => handleDelete(user._id)}
-                        disabled={isDeleting && deletingId === user._id}
-                        className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition disabled:opacity-50"
+                        disabled={user?.role === "super_admin" ? true : isDeleting && deletingId === user._id}
+                        className={`p-2 rounded-lg  text-gray-400 ${user?.role !== "super_admin" && "hover:text-red-500 hover:bg-red-50"} transition disabled:opacity-50`}
+                        
                       >
                         <Trash2 size={15} />
                       </button>
