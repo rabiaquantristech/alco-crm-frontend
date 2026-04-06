@@ -148,38 +148,89 @@ export default function SuperAdminDashboard() {
             label: "Name",
             render: (user) => (
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">
-                  {user.name?.charAt(0)}
+                <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-xs">
+                  {user.name?.charAt(0)?.toUpperCase()}
                 </div>
-                {user.name}
+                <span className="font-medium text-gray-800">
+                  {user.name}
+                </span>
               </div>
             ),
           },
-          { key: "email", label: "Email" },
+
           {
-            key: "role",
-            label: "Role",
+            key: "email",
+            label: "Email",
             render: (user) => (
-              <span className="px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
-                {user.role}
+              <span className="text-gray-500">
+                {user.email}
               </span>
             ),
           },
+
+          {
+            key: "role",
+            label: "Role",
+            render: (user) => {
+              const roleColor = (role: string) => {
+                switch (role) {
+                  case "super_admin":
+                    return "bg-yellow-100 text-yellow-700";
+
+                  case "admin":
+                    return "bg-blue-100 text-blue-700";
+
+                  case "sales_manager":
+                    return "bg-purple-100 text-purple-700";
+
+                  case "sales_rep":
+                    return "bg-green-100 text-green-700";
+
+                  case "support":
+                    return "bg-pink-100 text-pink-700";
+
+                  case "user":
+                    return "bg-gray-100 text-gray-600";
+
+                  default:
+                    return "bg-gray-100 text-gray-600";
+                }
+              };
+
+              return (
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${roleColor(user?.role)}`}
+                >
+                  {user.role}
+                </span>
+              );
+            },
+          },
+
           {
             key: "createdAt",
             label: "Joined",
-            render: (user) =>
-              new Date(user.createdAt).toLocaleDateString(),
+            render: (user) => (
+              <span className="text-gray-500">
+                {new Date(user.createdAt).toLocaleDateString()}
+              </span>
+            ),
           },
         ]}
         actions={[
           {
             icon: <Pencil size={14} />,
+            label: "Edit",
             onClick: (user) => setEditingUser(user),
+            disabled: (user: User) => user.role === "super_admin",
+            className: "hover:bg-blue-50 hover:text-blue-500",
           },
           {
             icon: <Trash2 size={14} />,
+            label: "Delete",
             onClick: (user) => handleDelete(user._id),
+            disabled: (user: User) => user.role === "super_admin",
+            className: "hover:bg-red-50 hover:text-red-500",
           },
         ]}
       />

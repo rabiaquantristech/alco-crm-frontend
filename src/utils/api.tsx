@@ -92,7 +92,7 @@ export const adminDeleteUser = (id: string) => API.delete(`/api/admin/users/${id
 export const adminDeleteAllUsers = () => API.delete("/api/admin/users");
 export const adminCreateUser = (data: any) => API.post("/api/admin/users", data);
 export const adminAssignRole = (id: string, role: string) => API.patch(`/api/admin/users/${id}/role`, { role });
-export const adminUpdateUserPassword = (id: string, password: string) => API.patch(`/api/admin/users/${id}/change-password`, { newPassword: password });
+export const adminUpdateUserPassword = (id: string, password: string) => API.patch(`/api/admin/users/${id}`, { newPassword: password });
 
 // User Profile APIs
 export const getProfile = () => API.get("/api/users/profile");
