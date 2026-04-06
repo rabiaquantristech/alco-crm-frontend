@@ -12,7 +12,7 @@ import Button from "@/app/component/ui/button";
 import Popup from "../component/ui/popup/popup";
 import { useAppSelector } from "@/store/hooks";
 import PageHeader from "../component/dashboard/page-header";
-import UsersTable from "../component/dashboard/user-table";
+import DynamicTable from "../component/dashboard/dynamic-table";
 
 // Add fields
 const addUserFields: ModalField[] = [
@@ -128,7 +128,7 @@ export default function SuperAdminDashboard() {
       />
 
       {/* Table */}
-      <UsersTable
+      {/* <DynamicTable
         users={data?.users || []}
         isLoading={isLoading}
         isError={isError}
@@ -137,6 +137,51 @@ export default function SuperAdminDashboard() {
         deletingId={deletingId}
         isDeleting={isDeleting}
         disableRole="admin"
+      /> */}
+      <DynamicTable
+        data={data?.users || []}
+        isLoading={isLoading}
+        isError={isError}
+        columns={[
+          {
+            key: "name",
+            label: "Name",
+            render: (user) => (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">
+                  {user.name?.charAt(0)}
+                </div>
+                {user.name}
+              </div>
+            ),
+          },
+          { key: "email", label: "Email" },
+          {
+            key: "role",
+            label: "Role",
+            render: (user) => (
+              <span className="px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                {user.role}
+              </span>
+            ),
+          },
+          {
+            key: "createdAt",
+            label: "Joined",
+            render: (user) =>
+              new Date(user.createdAt).toLocaleDateString(),
+          },
+        ]}
+        actions={[
+          {
+            icon: <Pencil size={14} />,
+            onClick: (user) => setEditingUser(user),
+          },
+          {
+            icon: <Trash2 size={14} />,
+            onClick: (user) => handleDelete(user._id),
+          },
+        ]}
       />
 
       {/* Add User Modal */}

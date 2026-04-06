@@ -11,7 +11,7 @@ import { ModalField } from "@/types/ui";
 import Popup from "../component/ui/popup/popup";
 import { useAppSelector } from "@/store/hooks";
 import PageHeader from "../component/dashboard/page-header";
-import UsersTable from "../component/dashboard/user-table";
+import DynamicTable from "../component/dashboard/dynamic-table";
 
 // Add fields
 const addUserFields: ModalField[] = [
@@ -130,44 +130,9 @@ export default function AdminPage() {
         onAdd={() => setIsAddOpen(true)}
         onDeleteAll={() => setShowDeleteAll(true)}
       />
-      {/* Table */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <UserCog size={24} />
-            Admin Panel
-          </h1>
-          <p className="text-gray-400 text-sm">Manage all users and their roles</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsAddOpen(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center hover:opacity-80 transition"
-            style={{ background: "#EEEDFE" }}
-            title="Add User"
-          >
-            <Plus size={16} color="#534AB7" />
-          </button>
-
-          <button
-            onClick={() => setShowDeleteAll(true)}
-            className="w-9 h-9 rounded-lg flex items-center justify-center hover:opacity-80 transition"
-            style={{ background: "#FAEEDA" }}
-            title="Delete All Users"
-          >
-            <Trash2 size={16} color="#854F0B" />
-          </button>
-
-          <div className="bg-white rounded-xl px-4 py-2 shadow-sm text-sm text-gray-600">
-            Total Users:{" "}
-            <span className="font-bold text-gray-900">{data?.count ?? 0}</span>
-          </div>
-        </div>
-      </div>
 
       {/* Table */}
-      <UsersTable
+      {/* <DynamicTable
         users={data?.users || []}
         isLoading={isLoading}
         isError={isError}
@@ -176,6 +141,51 @@ export default function AdminPage() {
         deletingId={deletingId}
         isDeleting={isDeleting}
         disableRole="admin"
+      /> */}
+      <DynamicTable
+        data={data?.users || []}
+        isLoading={isLoading}
+        isError={isError}
+        columns={[
+          {
+            key: "name",
+            label: "Name",
+            render: (user) => (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold">
+                  {user.name?.charAt(0)}
+                </div>
+                {user.name}
+              </div>
+            ),
+          },
+          { key: "email", label: "Email" },
+          {
+            key: "role",
+            label: "Role",
+            render: (user) => (
+              <span className="px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-700">
+                {user.role}
+              </span>
+            ),
+          },
+          {
+            key: "createdAt",
+            label: "Joined",
+            render: (user) =>
+              new Date(user.createdAt).toLocaleDateString(),
+          },
+        ]}
+        actions={[
+          {
+            icon: <Pencil size={14} />,
+            onClick: (user) => setEditingUser(user),
+          },
+          {
+            icon: <Trash2 size={14} />,
+            onClick: (user) => handleDelete(user._id),
+          },
+        ]}
       />
 
       {/* Add User Modal */}
