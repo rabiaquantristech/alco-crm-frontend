@@ -181,10 +181,10 @@ export default function SuperAdminDashboard() {
                     return "bg-blue-100 text-blue-700";
 
                   case "sales_manager":
-                    return "bg-purple-100 text-purple-700";
+                    return "bg-indigo-100 text-indigo-700";
 
                   case "sales_rep":
-                    return "bg-green-100 text-green-700";
+                    return "bg-teal-100 text-teal-700";
 
                   case "support":
                     return "bg-pink-100 text-pink-700";

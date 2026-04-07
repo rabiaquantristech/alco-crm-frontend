@@ -113,7 +113,7 @@
 //           </div>
 //           <div className="bg-gray-50 rounded-lg p-3">
 //             <p className="text-xs text-gray-500">Active Programs</p>
-//             <p className="text-xl font-bold text-purple-600">8</p>
+//             <p className="text-xl font-bold text-indigo-600">8</p>
 //           </div>
 //         </div>
 //       </div>
@@ -276,7 +276,7 @@ export default function UserDashboard() {
           data={[
             { label: "Conversion Rate", value: "32%", color: "text-green-600" },
             { label: "Avg. Deal Size", value: "$2,780", color: "text-blue-600" },
-            { label: "Active Programs", value: "8", color: "text-purple-600" },
+            { label: "Active Programs", value: "8", color: "text-indigo-600" },
           ]}
         />
       </div> */}

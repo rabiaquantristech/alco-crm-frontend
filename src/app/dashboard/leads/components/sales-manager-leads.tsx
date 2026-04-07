@@ -52,8 +52,8 @@ const statusColor = (status: string) => {
   switch (status) {
     case "new": return "bg-blue-100 text-blue-700";
     case "contacted": return "bg-yellow-100 text-yellow-700";
-    case "qualified": return "bg-purple-100 text-purple-700";
-    case "converted": return "bg-green-100 text-green-700";
+    case "qualified": return "bg-indigo-100 text-indigo-700";
+    case "converted": return "bg-teal-100 text-teal-700";
     case "lost": return "bg-red-100 text-red-700";
     default: return "bg-gray-100 text-gray-600";
   }
@@ -244,7 +244,7 @@ export default function SalesManagerLeads() {
                       </button>
                       <button
                         onClick={() => setActivityLead(lead)}
-                        className="p-2 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition"
+                        className="p-2 rounded-lg hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 transition"
                         title="Add Activity"
                       >
                         <Activity size={14} />
@@ -252,7 +252,7 @@ export default function SalesManagerLeads() {
                       {lead.status !== "converted" && lead.status !== "lost" && (
                         <button
                           onClick={() => convertLead(lead._id)}
-                          className="p-2 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition"
+                          className="p-2 rounded-lg hover:bg-teal-50 text-gray-400 hover:text-teal-600 transition"
                           title="Convert"
                         >
                           <UserCheck size={14} />

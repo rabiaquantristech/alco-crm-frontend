@@ -105,8 +105,8 @@ const statusColor = (status: string) => {
     switch (status) {
         case "new": return "bg-sky-100 text-sky-700";
         case "contacted": return "bg-yellow-100 text-yellow-700";
-        case "qualified": return "bg-purple-100 text-purple-700";
-        case "converted": return "bg-emerald-100 text-emerald-700";
+        case "qualified": return "bg-indigo-100 text-indigo-700";
+        case "converted": return "bg-teal-100 text-teal-700";
         case "lost": return "bg-rose-100 text-rose-700";
         case "hot": return "bg-red-100 text-red-600";
         case "warm": return "bg-orange-100 text-orange-600";
@@ -319,7 +319,7 @@ export default function AdminLeads() {
                         icon: <Activity size={14} />,
                         label: "Add Activity",
                         onClick: (lead) => setActivityLead(lead),
-                        className: "hover:bg-purple-50 hover:text-purple-600",
+                        className: "hover:bg-indigo-50 hover:text-indigo-600",
                     },
                     {
                         icon: <MdOutlineRemoveRedEye size={14} />,
@@ -331,7 +331,7 @@ export default function AdminLeads() {
                         icon: <UserCheck size={14} />,
                         label: "Convert",
                         onClick: (lead) => convertLead(lead._id),
-                        className: "hover:bg-green-50 hover:text-green-600",
+                        className: "hover:bg-teal-50 hover:text-teal-600",
                         hidden: (lead) => lead.status === "converted" || lead.status === "lost",
                     },
                     {
