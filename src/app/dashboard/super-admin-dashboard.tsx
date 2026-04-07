@@ -148,7 +148,12 @@ export default function SuperAdminDashboard() {
             label: "Name",
             render: (user) => (
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-xs">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-black font-bold text-xs"
+                  style={{
+                    background: user?.avatarColor,
+                    backdropFilter: "blur(10px)",
+                    opacity: 0.8,
+                  }}>
                   {user.name?.charAt(0)?.toUpperCase()}
                 </div>
                 <span className="font-medium text-gray-800">

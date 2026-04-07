@@ -66,7 +66,7 @@ export default function SalesManagerDashboard() {
 
       {/* Header */}
       <PageHeader
-        title="Relationship Manager Dashboard"
+        title="Sales Manager Dashboard"
         subtitle="Manage your leads and sessions efficiently"
         titleIcon={<UserCog size={24} />}
       // totalCount={data?.count ?? 0}

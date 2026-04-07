@@ -1,13 +1,81 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminGetAllLeads, adminMarkLost, adminAddActivity } from "@/utils/api";
-import { useAppSelector } from "@/store/hooks";
-import PageHeader from "@/app/component/dashboard/page-header";
+import {
+  getAllLeads, createLead, updateLead, addActivityLead, getActivitiesLead
+} from "@/utils/api";
+import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import Modal from "@/app/component/ui/model/modal";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
-import { PhoneCall, XCircle, Activity } from "lucide-react";
+import { Users, Pencil, Activity, } from "lucide-react";
+import { MdOutlineRemoveRedEye } from "react-icons/md";
+import DynamicTable from "@/app/component/dashboard/dynamic-table";
+import ViewActivityModal from "./view-activity-modal";
+import { useAppSelector } from "@/store/hooks";
+
+
+
+// ── Fields ──
+const addLeadFields: ModalField[] = [
+  { name: "first_name", label: "First Name", type: "input", inputType: "text", placeholder: "Ahmed" },
+  { name: "last_name", label: "Last Name", type: "input", inputType: "text", placeholder: "Khan" },
+  { name: "email", label: "Email", type: "input", inputType: "email", placeholder: "ahmed@gmail.com" },
+  { name: "phone", label: "Phone", type: "input", inputType: "text", placeholder: "03001234567" },
+  {
+    name: "source", label: "Source", type: "select",
+    options: [
+      { label: "Facebook", value: "facebook" },
+      { label: "Google", value: "google" },
+      { label: "Organic", value: "organic" },
+      { label: "Referral", value: "referral" },
+    ]
+  },
+  {
+    name: "quality", label: "Quality", type: "select",
+    options: [
+      { label: "Hot", value: "hot" },
+      { label: "Warm", value: "warm" },
+      { label: "Cold", value: "cold" },
+    ]
+  },
+  { name: "notes", label: "Notes", type: "textarea", placeholder: "Koi notes..." },
+];
+
+const editFields: ModalField[] = [
+  { name: "first_name", label: "First Name", type: "input", inputType: "text", disabled: true },
+  { name: "last_name", label: "Last Name", type: "input", inputType: "text", disabled: true },
+  { name: "email", label: "Email", type: "input", inputType: "email", disabled: true },
+  { name: "phone", label: "Phone", type: "input", inputType: "text", disabled: true },
+  {
+    name: "quality", label: "Quality", type: "select", disabled: true,
+    options: [
+      { label: "Hot", value: "hot" },
+      { label: "Warm", value: "warm" },
+      { label: "Cold", value: "cold" },
+    ]
+  },
+  {
+    name: "source", label: "Source", type: "select", disabled: true,
+    options: [
+      { label: "Facebook", value: "facebook" },
+      { label: "Google", value: "google" },
+      { label: "Organic", value: "organic" },
+      { label: "Referral", value: "referral" },
+    ]
+  },
+  {
+    name: "status", label: "Status", type: "select",
+    options: [
+      { label: "New", value: "new" },
+      { label: "Contacted", value: "contacted" },
+      { label: "Qualified", value: "qualified" },
+    ]
+  },
+  { name: "notes", label: "Notes", type: "textarea", placeholder: "Notes...", disabled: true },
+  { name: "utm_source", label: "UTM Source", type: "input", inputType: "text", disabled: true },
+  { name: "utm_campaign", label: "UTM Campaign", type: "input", inputType: "text", disabled: true },
+];
 
 const activityFields: ModalField[] = [
   {
@@ -32,17 +100,11 @@ const lostFields: ModalField[] = [
 
 const statusColor = (status: string) => {
   switch (status) {
-    case "new": return "bg-blue-100 text-blue-700";
+    case "new": return "bg-sky-100 text-sky-700";
     case "contacted": return "bg-yellow-100 text-yellow-700";
     case "qualified": return "bg-indigo-100 text-indigo-700";
     case "converted": return "bg-teal-100 text-teal-700";
-    case "lost": return "bg-red-100 text-red-700";
-    default: return "bg-gray-100 text-gray-600";
-  }
-};
-
-const qualityColor = (quality: string) => {
-  switch (quality) {
+    case "lost": return "bg-rose-100 text-rose-700";
     case "hot": return "bg-red-100 text-red-600";
     case "warm": return "bg-orange-100 text-orange-600";
     case "cold": return "bg-blue-100 text-blue-600";
@@ -52,35 +114,89 @@ const qualityColor = (quality: string) => {
 
 export default function SalesRepLeads() {
   const queryClient = useQueryClient();
-  const { user } = useAppSelector((state) => state.auth);
-  const [activityLead, setActivityLead] = useState<any>(null);
-  const [lostLead, setLostLead] = useState<any>(null);
-  const [search, setSearch] = useState("");
 
+  // ── States ──
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<any>(null);
+  const [activityLead, setActivityLead] = useState<any>(null);
+  const [viewActivities, setViewActivities] = useState<any>(null);
+  const [filters, setFilters] = useState({ status: "", quality: "", source: "", search: "" });
+  const { user: authUser } = useAppSelector((state) => state.auth);
+  console.log("Current user role in SalesManagerLeads:", authUser?.role);
+
+  const filterFields: FilterField[] = [
+    { type: "input", name: "search", placeholder: "Search name, email..." },
+    {
+      type: "select", name: "status",
+      options: [
+        { label: "New", value: "new" },
+        { label: "Contacted", value: "contacted" },
+        { label: "Qualified", value: "qualified" },
+        { label: "Converted", value: "converted" },
+        { label: "Lost", value: "lost" },
+      ],
+    },
+    {
+      type: "select", name: "quality",
+      options: [
+        { label: "Hot", value: "hot" },
+        { label: "Warm", value: "warm" },
+        { label: "Cold", value: "cold" },
+      ],
+    },
+    {
+      type: "select", name: "source",
+      options: [
+        { label: "Facebook", value: "facebook" },
+        { label: "Google", value: "google" },
+        { label: "Organic", value: "organic" },
+        { label: "Referral", value: "referral" },
+      ],
+    },
+  ];
+
+  // ── Queries ──
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["sales-rep-leads", user?.id, search],
-    queryFn: () => adminGetAllLeads({
-      assigned_to: user?.id,
-      search,
+    queryKey: ["sales-leads", filters],
+    queryFn: () => getAllLeads({
+      ...filters,
+      assigned_to: authUser._id
     }).then((res) => res.data),
   });
 
-  const { mutate: markLost, isPending: isMarkingLost } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => adminMarkLost(id, data),
+  const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
+    queryKey: ["lead-activities", viewActivities?._id],
+    queryFn: () => getActivitiesLead(viewActivities._id).then((res) => res.data),
+    enabled: !!viewActivities,
+  });
+
+  // ── Mutations ──
+  const { mutate: addLead, isPending: isAdding } = useMutation({
+    mutationFn: (data: any) => createLead(data),
     onSuccess: () => {
-      toast.success("Marked as lost!");
-      setLostLead(null);
-      queryClient.invalidateQueries({ queryKey: ["sales-rep-leads"] });
+      toast.success("Lead created! ✅");
+      setIsAddOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
     },
-    onError: () => toast.error("Failed!"),
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+  });
+
+  const { mutate: updateLeadApi, isPending: isUpdating } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateLead(id, data),
+    onSuccess: () => {
+      toast.success("Lead updated! ✅");
+      setEditingLead(null);
+      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
+    },
+    onError: () => toast.error("Failed to update!"),
   });
 
   const { mutate: addActivity, isPending: isAddingActivity } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => adminAddActivity(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => addActivityLead(id, data),
     onSuccess: () => {
       toast.success("Activity added! ✅");
       setActivityLead(null);
-      queryClient.invalidateQueries({ queryKey: ["sales-rep-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
     },
     onError: () => toast.error("Failed!"),
   });
@@ -88,113 +204,126 @@ export default function SalesRepLeads() {
   return (
     <>
       <PageHeader
-        title="My Leads"
-        subtitle="Leads assigned to you"
-        titleIcon={<PhoneCall size={24} />}
+        title="Leads"
+        subtitle="Manage all leads"
+        titleIcon={<Users size={24} />}
         totalCount={data?.meta?.total ?? 0}
+        onAdd={() => setIsAddOpen(true)}
+        filters={filters}
+        setFilters={setFilters}
+        filterFields={filterFields}
       />
 
-      {/* Search */}
-      <div className="flex gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Search name, email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-300 w-56"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="text-sm text-gray-400 hover:text-red-500 transition"
-          >
-            Reset
-          </button>
-        )}
-      </div>
-
       {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : isError ? (
-          <div className="text-center py-20 text-red-500">Failed to load leads.</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-gray-400 text-left">
-                <th className="px-6 py-4 font-medium">#</th>
-                <th className="px-6 py-4 font-medium">Name</th>
-                <th className="px-6 py-4 font-medium">Email</th>
-                <th className="px-6 py-4 font-medium">Phone</th>
-                <th className="px-6 py-4 font-medium">Quality</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.data?.map((lead: any, index: number) => (
-                <tr key={lead._id} className="border-b last:border-0 hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 text-gray-400">{index + 1}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-xs">
-                        {lead.first_name?.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-medium text-gray-800">
-                        {lead.first_name} {lead.last_name}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">{lead.email}</td>
-                  <td className="px-6 py-4 text-gray-500">{lead.phone || "—"}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${qualityColor(lead.quality)}`}>
-                      {lead.quality}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => setActivityLead(lead)}
-                        className="p-2 rounded-lg hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 transition"
-                        title="Add Activity"
-                      >
-                        <Activity size={14} />
-                      </button>
-                      {lead.status !== "converted" && lead.status !== "lost" && (
-                        <button
-                          onClick={() => setLostLead(lead)}
-                          className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition"
-                          title="Mark Lost"
-                        >
-                          <XCircle size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {data?.data?.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center py-16 text-gray-400">
-                    No leads assigned to you
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DynamicTable
+        data={data?.data || []}
+        isLoading={isLoading}
+        isError={isError}
+        columns={[
+          {
+            key: "name", label: "Name",
+            render: (lead) => (
+              <div className="flex items-center gap-3">
+                {/* <div className="w-8 h-8 rounded-full flex items-center justify-center text-gray-900 font-bold text-xs"
+                                    style={{
+                                        background: lead?.avatarColor,
+                                        backdropFilter: "blur(10px)",
+                                        opacity: 0.8,
+                                    }}>
+                                    {lead.first_name?.charAt(0).toUpperCase()}
+                                </div> */}
+                <span className="font-medium text-gray-800">
+                  {lead.first_name} {lead.last_name}
+                </span>
+              </div>
+            ),
+          },
+          { key: "email", label: "Email" },
+          { key: "phone", label: "Phone" },
+          {
+            key: "quality", label: "Quality",
+            render: (lead) => (
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.quality)}`}>
+                {lead.quality}
+              </span>
+            ),
+          },
+          {
+            key: "status", label: "Status",
+            render: (lead) => (
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>
+                {lead.status}
+              </span>
+            ),
+          },
+          {
+            key: "source", label: "Source",
+            render: (lead) => <span className="capitalize">{lead.source || "—"}</span>,
+          },
+          {
+            key: "assigned_to", label: "Assigned To",
+            render: (lead) => <span>{lead.assigned_to?.name || "—"}</span>,
+          },
+        ]}
+        actions={[
+          {
+            icon: <Pencil size={14} />,
+            label: "Edit",
+            onClick: (lead) => setEditingLead(lead),
+          },
+          {
+            icon: <Activity size={14} />,
+            label: "Add Activity",
+            onClick: (lead) => setActivityLead(lead),
+          },
+          {
+            icon: <MdOutlineRemoveRedEye size={14} />,
+            label: "View Activities",
+            onClick: (lead) => setViewActivities(lead),
+            hidden: (lead) => !lead.activities || lead.activities.length === 0,
+          }
+        ]}
+      />
 
-      {/* Activity Modal */}
+
+      {/* ── Add Lead Modal ── */}
+      <Modal
+        isOpen={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        title="Add New Lead"
+        fields={addLeadFields}
+        onSubmit={(data) => addLead(data)}
+        isLoading={isAdding}
+        mode="add"
+      />
+
+      {/* ── Edit Modal ── */}
+      {editingLead && (
+        <Modal
+          isOpen={!!editingLead}
+          onClose={() => setEditingLead(null)}
+          title="Edit Lead"
+          subtitle={`${editingLead.first_name} ${editingLead.last_name}`}
+          fields={editFields}
+          initialValues={{
+            first_name: editingLead.first_name,
+            last_name: editingLead.last_name,
+            email: editingLead.email,
+            phone: editingLead.phone || "",
+            quality: editingLead.quality || "",
+            source: editingLead.source || "",
+            status: editingLead.status || "",
+            notes: editingLead.notes || "",
+            utm_source: editingLead.utm_source || "",
+            utm_campaign: editingLead.utm_campaign || "",
+          }}
+          onSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
+          isLoading={isUpdating}
+          mode="edit"
+        />
+      )}
+
+      {/* ── Add Activity Modal ── */}
       {activityLead && (
         <Modal
           isOpen={!!activityLead}
@@ -208,19 +337,20 @@ export default function SalesRepLeads() {
         />
       )}
 
-      {/* Mark Lost Modal */}
-      {lostLead && (
-        <Modal
-          isOpen={!!lostLead}
-          onClose={() => setLostLead(null)}
-          title="Mark as Lost"
-          subtitle={`${lostLead.first_name} ${lostLead.last_name}`}
-          fields={lostFields}
-          onSubmit={(data) => markLost({ id: lostLead._id, data })}
-          isLoading={isMarkingLost}
-          mode="add"
-        />
-      )}
+      {/* ── View Activities Modal ── */}
+      {/* {viewActivities && ( */}
+      <ViewActivityModal
+        isOpen={!!viewActivities}
+        onClose={() => setViewActivities(null)}
+        lead={viewActivities}
+        activitiesData={activitiesData}
+        isLoading={isLoadingActivities}
+      />
+      {/* )} */}
+
+
+
+
     </>
   );
 }

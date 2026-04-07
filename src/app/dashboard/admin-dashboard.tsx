@@ -9,7 +9,6 @@ import { Pencil, Trash2, UserCog, Plus } from "lucide-react";
 import Modal from "../component/ui/model/modal";
 import { ModalField } from "@/types/ui";
 import Popup from "../component/ui/popup/popup";
-import { useAppSelector } from "@/store/hooks";
 import PageHeader from "../component/dashboard/page-header";
 import DynamicTable from "../component/dashboard/dynamic-table";
 
@@ -21,12 +20,12 @@ const addUserFields: ModalField[] = [
   {
     name: "role", label: "Role", type: "select",
     options: [
-  { label: "User", value: "user" },
-  { label: "Admin", value: "admin" },
-  { label: "Sales Manager", value: "sales_manager" },
-  { label: "Sales Rep", value: "sales_rep" },
-  { label: "Support", value: "support" },
-]
+      { label: "User", value: "user" },
+      { label: "Admin", value: "admin" },
+      { label: "Sales Manager", value: "sales_manager" },
+      { label: "Sales Rep", value: "sales_rep" },
+      { label: "Support", value: "support" },
+    ]
   },
 ];
 
@@ -36,7 +35,6 @@ export default function AdminPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [showDeleteAll, setShowDeleteAll] = useState(false);
-  const { user: authUser } = useAppSelector((state) => state.auth);
 
   // Fetch Users
   const { data, isLoading, isError } = useQuery<UsersResponse>({
@@ -141,7 +139,12 @@ export default function AdminPage() {
             label: "Name",
             render: (user) => (
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-xs">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-black font-bold text-xs"
+                  style={{
+                    background: user?.avatarColor,
+                    backdropFilter: "blur(10px)",
+                    opacity: 0.8,
+                  }}>
                   {user.name?.charAt(0)?.toUpperCase()}
                 </div>
                 <span className="font-medium text-gray-800">

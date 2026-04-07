@@ -95,20 +95,24 @@ export const adminAssignRole = (id: string, role: string) => API.patch(`/api/adm
 export const adminUpdateUserPassword = (id: string, password: string) => API.patch(`/api/admin/users/${id}`, { newPassword: password });
 
 // User Profile APIs
+export const getAllUsersForRole = () => API.get("/api/users");
 export const getProfile = () => API.get("/api/users/profile");
 export const updateProfile = (data: { name: string }) => API.patch("/api/users/profile", data);
 export const changePassword = (data: { oldPassword: string; newPassword: string }) => API.patch("/api/users/change-password", data);
 export const deleteMyAccount = () => API.delete("/api/users/delete-account");
 
 // Lead APIs
-export const adminGetAllLeads = (params?: any) => API.get("/api/v1/leads", { params });
-export const adminCreateLead = (data: any) => API.post("/api/v1/leads", data);
-export const adminUpdateLead = (id: string, data: any) => API.put(`/api/v1/leads/${id}`, data);
-export const adminDeleteLead = (id: string) => API.delete(`/api/v1/leads/${id}`);
-export const adminAssignLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/assign`, data);
-export const adminConvertLead = (id: string) => API.post(`/api/v1/leads/${id}/convert`);
-export const adminMarkLost = (id: string, data: any) => API.post(`/api/v1/leads/${id}/mark-lost`, data);
-export const adminGetActivities = (id: string) => API.get(`/api/v1/leads/${id}/activities`);
-export const adminAddActivity = (id: string, data: any) => API.post(`/api/v1/leads/${id}/activities`, data);
+export const getAllLeads = (params?: any) => API.get("/api/v1/leads", { params });
+export const createLead = (data: any) => API.post("/api/v1/leads", data);
+export const updateLead = (id: string, data: any) => API.put(`/api/v1/leads/${id}`, data);
+export const deleteLead = (id: string) => API.delete(`/api/v1/leads/${id}`);
+export const assignLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/assign`, data);
+export const convertLead = (id: string) => API.post(`/api/v1/leads/${id}/convert`);
+export const markLostLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/mark-lost`, data);
+export const getActivitiesLead = (id: string) => API.get(`/api/v1/leads/${id}/activities`);
+export const addActivityLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/activities`, data);
+export const getLeadsStats = (userId?: string) => API.get("/api/v1/leads/stats", {
+    params: userId ? { userId } : {},
+  });
 
 export default API;

@@ -110,7 +110,11 @@ export default function ProfilePage() {
                     {/* Profile Card */}
                     <div className="bg-white rounded-2xl shadow-sm p-6">
                         <div className="flex items-center gap-4 mb-6">
-                            <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-2xl">
+                            <div className={"w-16 h-16 rounded-full flex items-center justify-center text-gray-900 font-bold text-2xl"} style={{
+                                background: data?.avatarColor,
+                                backdropFilter: "blur(10px)",
+                                opacity: 0.8,
+                            }}>
                                 {data?.name?.charAt(0).toUpperCase()}
                             </div>
                             <div>

@@ -2,18 +2,24 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-    adminGetAllLeads, adminCreateLead, adminUpdateLead, adminDeleteLead,
-    adminAssignLead, adminConvertLead, adminMarkLost, adminAddActivity, adminGetActivities
+    getAllLeads, createLead, updateLead, deleteLead,
+    assignLead, convertLead, markLostLead, addActivityLead, getActivitiesLead,
+    getLeadsStats
 } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import Modal from "@/app/component/ui/model/modal";
 import { ModalField } from "@/types/ui";
-import Button from "@/app/component/ui/button";
 import toast from "react-hot-toast";
 import { Users, Pencil, UserCheck, XCircle, Activity, Trash2, UserPlus } from "lucide-react";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import AssignLeadModal from "./assign-lead-modal";
+import LeadPipeline from "@/app/component/dashboard/lead-pipeline";
+import QuickStats from "@/app/component/dashboard/quick-stats";
+import Popup from "@/app/component/ui/popup/popup";
+import ViewActivityModal from "./view-activity-modal";
+import { useAppSelector } from "@/store/hooks";
+
 
 // ── Fields ──
 const addLeadFields: ModalField[] = [
@@ -97,10 +103,6 @@ const lostFields: ModalField[] = [
     { name: "lost_notes", label: "Notes", type: "textarea", placeholder: "Additional notes..." },
 ];
 
-const assignFields: ModalField[] = [
-    { name: "assigned_to", label: "User ID", type: "input", inputType: "text", placeholder: "Sales rep user ID" },
-];
-
 const statusColor = (status: string) => {
     switch (status) {
         case "new": return "bg-sky-100 text-sky-700";
@@ -124,10 +126,12 @@ export default function AdminLeads() {
     const [activityLead, setActivityLead] = useState<any>(null);
     const [lostLead, setLostLead] = useState<any>(null);
     const [assigningLead, setAssigningLead] = useState<any>(null);
-    const [showDeleteAll, setShowDeleteAll] = useState(false);
-    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [showDeletePopup, setShowDeletePopup] = useState(false);
+    const [deletingLead, setDeletingLead] = useState<any>(null);
     const [viewActivities, setViewActivities] = useState<any>(null);
     const [filters, setFilters] = useState({ status: "", quality: "", source: "", search: "" });
+    const { user: authUser } = useAppSelector((state) => state.auth);
+    console.log("Current user role in AdminLeads:", authUser?.role);
 
     const filterFields: FilterField[] = [
         { type: "input", name: "search", placeholder: "Search name, email..." },
@@ -163,18 +167,41 @@ export default function AdminLeads() {
     // ── Queries ──
     const { data, isLoading, isError } = useQuery({
         queryKey: ["admin-leads", filters],
-        queryFn: () => adminGetAllLeads(filters).then((res) => res.data),
+        queryFn: () => getAllLeads(filters).then((res) => res.data),
     });
 
     const { data: activitiesData, isLoading: isLoadingActivities } = useQuery({
         queryKey: ["lead-activities", viewActivities?._id],
-        queryFn: () => adminGetActivities(viewActivities._id).then((res) => res.data),
+        queryFn: () => getActivitiesLead(viewActivities._id).then((res) => res.data),
         enabled: !!viewActivities,
     });
 
+    // ✅ Stats query add karo
+    const { data: statsData } = useQuery({
+        queryKey: ["admin-leads-stats"],
+        queryFn: () => getLeadsStats().then((res) => res.data.data),
+    });
+
+    // Pipeline real data
+    const pipelineData = [
+        { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
+        { label: "Contacted", count: statsData?.contacted || 0, color: "bg-yellow-400" },
+        { label: "Qualified", count: statsData?.qualified || 0, color: "bg-indigo-500" },
+        { label: "Converted", count: statsData?.converted || 0, color: "bg-teal-500" },
+        { label: "Lost", count: statsData?.lost || 0, color: "bg-rose-400" },
+    ];
+
+    // Quick stats real data
+    const quickStatsData = [
+        { label: "Conversion Rate", value: `${statsData?.conversionRate || 0}%`, color: "text-teal-600" },
+        { label: "Hot Leads", value: `${statsData?.hot || 0}`, color: "text-red-500" },
+        { label: "Assigned", value: `${statsData?.assigned || 0}`, color: "text-blue-600" },
+        { label: "Lost", value: `${statsData?.lost || 0}`, color: "text-rose-500" },
+    ];
+
     // ── Mutations ──
     const { mutate: addLead, isPending: isAdding } = useMutation({
-        mutationFn: (data: any) => adminCreateLead(data),
+        mutationFn: (data: any) => createLead(data),
         onSuccess: () => {
             toast.success("Lead created! ✅");
             setIsAddOpen(false);
@@ -183,8 +210,8 @@ export default function AdminLeads() {
         onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
     });
 
-    const { mutate: updateLead, isPending: isUpdating } = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => adminUpdateLead(id, data),
+    const { mutate: updateLeadApi, isPending: isUpdating } = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => updateLead(id, data),
         onSuccess: () => {
             toast.success("Lead updated! ✅");
             setEditingLead(null);
@@ -193,18 +220,18 @@ export default function AdminLeads() {
         onError: () => toast.error("Failed to update!"),
     });
 
-    const { mutate: deleteLead, isPending: isDeleting } = useMutation({
-        mutationFn: (id: string) => adminDeleteLead(id),
+    const { mutate: deleteLeadApi, isPending: isDeleting } = useMutation({
+        mutationFn: (id: string) => deleteLead(id),
         onSuccess: () => {
             toast.success("Lead deleted! 🗑️");
-            setDeletingId(null);
+            setDeletingLead(null);
             queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
         },
         onError: () => toast.error("Failed to delete!"),
     });
 
-    const { mutate: assignLead, isPending: isAssigning } = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => adminAssignLead(id, data),
+    const { mutate: assignLeadApi, isPending: isAssigning } = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => assignLead(id, data),
         onSuccess: () => {
             toast.success("Lead assigned! ✅");
             setAssigningLead(null);
@@ -213,8 +240,8 @@ export default function AdminLeads() {
         onError: () => toast.error("Failed to assign!"),
     });
 
-    const { mutate: convertLead } = useMutation({
-        mutationFn: (id: string) => adminConvertLead(id),
+    const { mutate: convertLeadApi } = useMutation({
+        mutationFn: (id: string) => convertLead(id),
         onSuccess: () => {
             toast.success("Lead converted! 🎉");
             queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
@@ -223,7 +250,7 @@ export default function AdminLeads() {
     });
 
     const { mutate: markLost, isPending: isMarkingLost } = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => adminMarkLost(id, data),
+        mutationFn: ({ id, data }: { id: string; data: any }) => markLostLead(id, data),
         onSuccess: () => {
             toast.success("Marked as lost!");
             setLostLead(null);
@@ -233,7 +260,7 @@ export default function AdminLeads() {
     });
 
     const { mutate: addActivity, isPending: isAddingActivity } = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => adminAddActivity(id, data),
+        mutationFn: ({ id, data }: { id: string; data: any }) => addActivityLead(id, data),
         onSuccess: () => {
             toast.success("Activity added! ✅");
             setActivityLead(null);
@@ -250,7 +277,7 @@ export default function AdminLeads() {
                 titleIcon={<Users size={24} />}
                 totalCount={data?.meta?.total ?? 0}
                 onAdd={() => setIsAddOpen(true)}
-                onDeleteAll={() => setShowDeleteAll(true)}
+                // onDeleteAll={() => setShowDeletepOPU(true)}
                 filters={filters}
                 setFilters={setFilters}
                 filterFields={filterFields}
@@ -266,9 +293,14 @@ export default function AdminLeads() {
                         key: "name", label: "Name",
                         render: (lead) => (
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-gray-900 font-bold text-xs">
+                                {/* <div className="w-8 h-8 rounded-full flex items-center justify-center text-gray-900 font-bold text-xs"
+                                    style={{
+                                        background: lead?.avatarColor,
+                                        backdropFilter: "blur(10px)",
+                                        opacity: 0.8,
+                                    }}>
                                     {lead.first_name?.charAt(0).toUpperCase()}
-                                </div>
+                                </div> */}
                                 <span className="font-medium text-gray-800">
                                     {lead.first_name} {lead.last_name}
                                 </span>
@@ -326,11 +358,12 @@ export default function AdminLeads() {
                         label: "View Activities",
                         onClick: (lead) => setViewActivities(lead),
                         className: "hover:bg-indigo-50 hover:text-indigo-600",
+                        hidden: (lead) => !lead.activities || lead.activities.length === 0,
                     },
                     {
                         icon: <UserCheck size={14} />,
                         label: "Convert",
-                        onClick: (lead) => convertLead(lead._id),
+                        onClick: (lead) => convertLeadApi(lead._id),
                         className: "hover:bg-teal-50 hover:text-teal-600",
                         hidden: (lead) => lead.status === "converted" || lead.status === "lost",
                     },
@@ -345,13 +378,23 @@ export default function AdminLeads() {
                         icon: <Trash2 size={14} />,
                         label: "Delete",
                         onClick: (lead) => {
-                            setDeletingId(lead._id);
-                            deleteLead(lead._id);
+                            setDeletingLead(lead);
                         },
                         className: "hover:bg-red-50 hover:text-red-500",
                     },
                 ]}
             />
+
+            {/* Pipeline + Quick Stats */}
+            <div className="grid grid-cols-3 gap-4 mt-6">
+                <div className="col-span-2">
+                    <LeadPipeline data={pipelineData} />
+                </div>
+
+                <QuickStats
+                    data={quickStatsData}
+                />
+            </div>
 
             {/* ── Add Lead Modal ── */}
             <Modal
@@ -384,25 +427,11 @@ export default function AdminLeads() {
                         utm_source: editingLead.utm_source || "",
                         utm_campaign: editingLead.utm_campaign || "",
                     }}
-                    onSubmit={(data) => updateLead({ id: editingLead._id, data })}
+                    onSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
                     isLoading={isUpdating}
                     mode="edit"
                 />
             )}
-
-            {/* ── Assign Modal ── */}
-            {/* {assigningLead && (
-                <Modal
-                    isOpen={!!assigningLead}
-                    onClose={() => setAssigningLead(null)}
-                    title="Assign Lead"
-                    subtitle={`${assigningLead.first_name} ${assigningLead.last_name}`}
-                    fields={assignFields}
-                    onSubmit={(data) => assignLead({ id: assigningLead._id, data })}
-                    isLoading={isAssigning}
-                    mode="add"
-                />
-            )} */}
 
             {/* ── Add Activity Modal ── */}
             {activityLead && (
@@ -419,56 +448,15 @@ export default function AdminLeads() {
             )}
 
             {/* ── View Activities Modal ── */}
-            {viewActivities && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-800">Activities</h2>
-                                <p className="text-xs text-gray-400">{viewActivities.first_name} {viewActivities.last_name}</p>
-                            </div>
-                            <button onClick={() => setViewActivities(null)} className="text-gray-400 hover:text-gray-600">✕</button>
-                        </div>
-
-                        {isLoadingActivities ? (
-                            <div className="flex justify-center py-8">
-                                <div className="w-6 h-6 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-                            </div>
-                        ) : activitiesData?.data?.length === 0 ? (
-                            <p className="text-center text-gray-400 py-8">No activities yet</p>
-                        ) : (
-                            <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {activitiesData?.data?.map((act: any, i: number) => (
-                                    <div key={i} className="border rounded-xl p-4">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-sm font-medium text-gray-800">{act.title}</span>
-                                            <span className="text-xs text-gray-400 capitalize">{act.activity_type}</span>
-                                        </div>
-                                        {act.description && (
-                                            <p className="text-xs text-gray-500">{act.description}</p>
-                                        )}
-                                        {act.call_duration_minutes && (
-                                            <p className="text-xs text-gray-400 mt-1">Duration: {act.call_duration_minutes} mins</p>
-                                        )}
-                                        {act.call_outcome && (
-                                            <p className="text-xs text-gray-400">Outcome: {act.call_outcome}</p>
-                                        )}
-                                        <p className="text-xs text-gray-300 mt-2">
-                                            {new Date(act.createdAt).toLocaleDateString()}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <div className="mt-4">
-                            <Button variant="secondary" fullWidth onClick={() => setViewActivities(null)}>
-                                Close
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* {viewActivities && ( */}
+            <ViewActivityModal
+                isOpen={!!viewActivities}
+                onClose={() => setViewActivities(null)}
+                lead={viewActivities}
+                activitiesData={activitiesData}
+                isLoading={isLoadingActivities}
+            />
+            {/* )} */}
 
             {/* ── Mark Lost Modal ── */}
             {lostLead && (
@@ -484,44 +472,69 @@ export default function AdminLeads() {
                 />
             )}
 
-            {/* ── Delete All Popup ── */}
-            {showDeleteAll && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                <Trash2 size={18} className="text-red-500" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-gray-800">Delete All Leads</h3>
-                                <p className="text-xs text-gray-400">This cannot be undone</p>
-                            </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-6">
+            {/* ── Delete Lead Popup ── */}
+            {deletingLead && (
+                <Popup
+                    isOpen={!!deletingLead}
+                    onClose={() => setDeletingLead(null)}
+                    onConfirm={() => {
+                        deleteLeadApi(deletingLead._id);
+                    }}
+                    variant="danger"
+                    title="Delete Lead"
+                    description={
+                        <>
                             Are you sure you want to delete{" "}
-                            <span className="font-bold text-red-500">all leads</span>?
-                        </p>
-                        <div className="flex gap-3">
-                            <Button variant="secondary" fullWidth onClick={() => setShowDeleteAll(false)}>
-                                Cancel
-                            </Button>
-                            <Button variant="danger" fullWidth onClick={() => setShowDeleteAll(false)}>
-                                Yes, Delete All
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                            <span className="font-bold text-red-500">
+                                {deletingLead.first_name} {deletingLead.last_name}
+                            </span>
+                            ? This action cannot be undone.
+                        </>
+                    }
+                    confirmText="Yes, Delete"
+                    isLoading={isDeleting}
+                    loadingText="Deleting..."
+                />
             )}
 
+            {/* ── Delete All Popup ── */}
+            {showDeletePopup && (
+                <Popup
+                    isOpen={showDeletePopup}
+                    onClose={() => setShowDeletePopup(false)}
+                    onConfirm={() => {
+                        if (data?.data?.length === 0) {
+                            toast.error("No leads to delete!");
+                            setShowDeletePopup(false);
+                            return;
+                        }
+                    }}
+                    variant="danger"
+                    title="Delete All Leads"
+                    description={
+                        <>
+                            Are you sure you want to delete{" "}
+                            <span className="font-bold text-red-500">all leads</span>?
+                            This will permanently remove every lead from the system.
+                        </>
+                    }
+                    confirmText="Yes, Delete All"
+                    isLoading={isDeleting}
+                    loadingText="Deleting..."
+                />
+            )}
+
+            {/* ── Assign Modal ── */}
             {assigningLead && (
                 <AssignLeadModal
                     lead={assigningLead}
                     onClose={() => setAssigningLead(null)}
-                    onAssign={(userId) => assignLead({
+                    onAssign={(userId) => assignLeadApi({
                         id: assigningLead._id,
                         data: { assigned_to: userId }
                     })}
                     isLoading={isAssigning}
+                    currentUserRole="admin"
                 />
             )}
         </>

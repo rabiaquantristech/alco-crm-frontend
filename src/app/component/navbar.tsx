@@ -37,12 +37,16 @@ export default function Navbar() {
         {/* Notification Bell */}
         <button className="relative p-2 rounded-full hover:bg-gray-100 transition">
           <Bell size={20} className="text-gray-600" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></span>
+          <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full"></span>
         </button>
 
         {/* User Avatar — Profile Link */}
         <Link href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer">
-          <div className="w-9 h-9 bg-yellow-400 rounded-full flex items-center justify-center hover:bg-yellow-500 transition">
+          <div className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-yellow-500 transition" style={{
+                                background: user?.avatarColor,
+                                backdropFilter: "blur(10px)",
+                                opacity: 0.8,
+                            }}>
             <span className="text-gray-900 font-bold text-sm">
               {userName.charAt(0).toUpperCase()}
             </span>
