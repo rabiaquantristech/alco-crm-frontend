@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/authSlice";
@@ -13,15 +14,18 @@ import { changePassword, deleteMyAccount, getProfile, updateProfile } from "@/ut
 import Popup from "@/app/component/ui/popup/popup";
 import PageHeader from "@/app/component/dashboard/page-header";
 
+
 export default function ProfilePage() {
     const dispatch = useAppDispatch();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { user: authUser } = useAppSelector((state) => state.auth);
+    const searchParams = useSearchParams();
+
 
     const [nameForm, setNameForm] = useState({ name: authUser?.name || "" });
     const [passwordForm, setPasswordForm] = useState({
-        oldPassword: "",
+        oldPassword: searchParams.get("password") || "",
         newPassword: "",
         confirmPassword: "",
     });
@@ -94,177 +98,191 @@ export default function ProfilePage() {
         }
     };
 
+    const tempPassword = searchParams.get("password");
+
+    useEffect(() => {
+        if (data?.isTemporaryPassword && tempPassword) {
+            setPasswordForm((prev) => ({
+                ...prev,
+                oldPassword: tempPassword,
+            }));
+        }
+
+    
+    }, [data]);
+
     return (
+        <>
+            <ProtectedRoute>
+                <div className="flex-1 px-2 space-y-6 max-w-3xl">
 
-        <ProtectedRoute>
-            <div className="flex-1 px-2 space-y-6 max-w-3xl">
-
-                <PageHeader
-                    title="Profile"
-                    subtitle="Manage your profile settings"
-                    titleIcon={<UserRoundCheck size={24} />}
-                // onAdd={() => setIsAddOpen(true)}
-                // onDeleteAll={() => setShowDeleteAll(true)}
-                />
-                <>
-                    {/* Profile Card */}
-                    <div className="bg-white rounded-2xl shadow-sm p-6">
-                        <div className="flex items-center gap-4 mb-6">
-                            <div className={"w-16 h-16 rounded-full flex items-center justify-center text-gray-900 font-bold text-2xl"} style={{
-                                background: data?.avatarColor,
-                                backdropFilter: "blur(10px)",
-                                opacity: 0.8,
-                            }}>
-                                {data?.name?.charAt(0).toUpperCase()}
+                    <PageHeader
+                        title="Profile"
+                        subtitle="Manage your profile settings"
+                        titleIcon={<UserRoundCheck size={24} />}
+                    // onAdd={() => setIsAddOpen(true)}
+                    // onDeleteAll={() => setShowDeleteAll(true)}
+                    />
+                    <>
+                        {/* Profile Card */}
+                        <div className="bg-white rounded-2xl shadow-sm p-6">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className={"w-16 h-16 rounded-full flex items-center justify-center text-gray-900 font-bold text-2xl"} style={{
+                                    background: data?.avatarColor,
+                                    backdropFilter: "blur(10px)",
+                                    opacity: 0.8,
+                                }}>
+                                    {data?.name?.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-gray-800">{data?.name}</h2>
+                                    <p className="text-gray-400 text-sm">{data?.email}</p>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium mt-1 inline-block ${roleColor(data?.role)}`}>
+                                        {data?.role}
+                                    </span>
+                                </div>
                             </div>
-                            <div>
-                                <h2 className="text-lg font-semibold text-gray-800">{data?.name}</h2>
-                                <p className="text-gray-400 text-sm">{data?.email}</p>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium mt-1 inline-block ${roleColor(data?.role)}`}>
-                                    {data?.role}
-                                </span>
+
+                            {/* Update Name */}
+                            <div className="border-t pt-5">
+                                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+                                    <User size={16} />
+                                    Update Name
+                                </h3>
+                                <div className="flex gap-3">
+                                    <div className="flex-1">
+                                        <InputField
+                                            label="Full Name"
+                                            type="text"
+                                            placeholder="Enter your name"
+                                            value={nameForm.name}
+                                            onChange={(e) => setNameForm({ name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="flex items-end">
+                                        <Button
+                                            isLoading={isUpdating}
+                                            loadingText="Saving..."
+                                            onClick={() => updateName()}
+                                            variant="black"
+                                        >
+                                            <Save size={16} />
+                                            Save
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Update Name */}
-                        <div className="border-t pt-5">
+                        {/* Change Password */}
+                        <div className={searchParams.get("password") ? "bg-red-50 border border-red-500 rounded-2xl shadow-sm p-6" : "bg-white rounded-2xl shadow-sm p-6"}>
                             <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                                <User size={16} />
-                                Update Name
-                            </h3>
-                            <div className="flex gap-3">
-                                <div className="flex-1">
-                                    <InputField
-                                        label="Full Name"
-                                        type="text"
-                                        placeholder="Enter your name"
-                                        value={nameForm.name}
-                                        onChange={(e) => setNameForm({ name: e.target.value })}
-                                    />
-                                </div>
-                                <div className="flex items-end">
-                                    <Button
-                                        isLoading={isUpdating}
-                                        loadingText="Saving..."
-                                        onClick={() => updateName()}
-                                        variant="black"
-                                    >
-                                        <Save size={16} />
-                                        Save
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Change Password */}
-                    <div className="bg-white rounded-2xl shadow-sm p-6">
-                        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                            <Lock size={16} />
-                            Change Password
-                        </h3>
-                        <div className="space-y-4">
-                            <InputField
-                                label="Current Password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={passwordForm.oldPassword}
-                                onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
-                            />
-                            <InputField
-                                label="New Password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={passwordForm.newPassword}
-                                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                            />
-                            <InputField
-                                label="Confirm New Password"
-                                type="password"
-                                placeholder="••••••••"
-                                value={passwordForm.confirmPassword}
-                                onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                            />
-                            <Button
-                                isLoading={isChangingPass}
-                                loadingText="Changing..."
-                                onClick={handlePasswordSubmit}
-                                variant="black"
-                            >
                                 <Lock size={16} />
                                 Change Password
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Danger Zone */}
-                    <div className="bg-white rounded-2xl shadow-sm p-6 border border-red-100">
-                        <h3 className="text-sm font-semibold text-red-500 flex items-center gap-2 mb-2">
-                            <ShieldAlert size={16} />
-                            Danger Zone
-                        </h3>
-                        <p className="text-gray-400 text-xs mb-4">
-                            Once you delete your account, there is no going back. Please be certain.
-                        </p>
-
-                        {!showDeleteConfirm ? (
-                            <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>
-                                <Trash2 size={16} />
-                                Delete Account
-                            </Button>
-                        ) : (
-                            <div className="flex gap-3">
+                            </h3>
+                            <div className="space-y-4">
+                                <InputField
+                                    label="Current Password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={passwordForm.oldPassword}
+                                    onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
+                                />
+                                <InputField
+                                    label="New Password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={passwordForm.newPassword}
+                                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                />
+                                <InputField
+                                    label="Confirm New Password"
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={passwordForm.confirmPassword}
+                                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                />
                                 <Button
-                                    variant="secondary"
-                                    onClick={() => setShowDeleteConfirm(false)}
+                                    isLoading={isChangingPass}
+                                    loadingText="Changing..."
+                                    onClick={handlePasswordSubmit}
+                                    variant="black"
                                 >
-                                    Cancel
-                                </Button>
-                                <Button
-                                    variant="danger"
-                                    isLoading={isDeleting}
-                                    loadingText="Deleting..."
-                                    onClick={() => deleteAccount()}
-                                >
-                                    Yes, Delete My Account
+                                    <Lock size={16} />
+                                    Change Password
                                 </Button>
                             </div>
-                        )}
+                        </div>
 
-                        {/* ✅ Delete Account Popup */}
-                        <Popup
-                            isOpen={showDeleteConfirm}
-                            onClose={() => setShowDeleteConfirm(false)}
-                            onConfirm={() => deleteAccount()}
-                            variant="danger"
-                            title="Delete Account"
-                            description={
-                                <>
-                                    Are you sure you want to permanently delete your account?{" "}
-                                    <span className="font-semibold text-red-500">This action cannot be undone.</span>{" "}
-                                    All your data will be removed from the system immediately.
-                                </>
-                            }
-                            confirmText="Yes, Delete My Account"
-                            cancelText="Cancel"
-                            isLoading={isDeleting}
-                            loadingText="Deleting..."
-                        />
+                        {/* Danger Zone */}
+                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-red-100">
+                            <h3 className="text-sm font-semibold text-red-500 flex items-center gap-2 mb-2">
+                                <ShieldAlert size={16} />
+                                Danger Zone
+                            </h3>
+                            <p className="text-gray-400 text-xs mb-4">
+                                Once you delete your account, there is no going back. Please be certain.
+                            </p>
 
-                        {/* ✅ Password Change Popup */}
-                        <Popup
-                            isOpen={showPasswordConfirm}
-                            onClose={() => setShowPasswordConfirm(false)}
-                            onConfirm={() => { setShowPasswordConfirm(false); changePass(); }}
-                            variant="warning"
-                            title="Change Password"
-                            description="Are you sure you want to change your password? Your current password will no longer work after this."
-                            confirmText="Yes, Change Password"
-                            cancelText="Cancel"
-                        />
-                    </div>
-                </>
-            </div>
-        </ProtectedRoute>
+                            {!showDeleteConfirm ? (
+                                <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>
+                                    <Trash2 size={16} />
+                                    Delete Account
+                                </Button>
+                            ) : (
+                                <div className="flex gap-3">
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        variant="danger"
+                                        isLoading={isDeleting}
+                                        loadingText="Deleting..."
+                                        onClick={() => deleteAccount()}
+                                    >
+                                        Yes, Delete My Account
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* ✅ Delete Account Popup */}
+                            <Popup
+                                isOpen={showDeleteConfirm}
+                                onClose={() => setShowDeleteConfirm(false)}
+                                onConfirm={() => deleteAccount()}
+                                variant="danger"
+                                title="Delete Account"
+                                description={
+                                    <>
+                                        Are you sure you want to permanently delete your account?{" "}
+                                        <span className="font-semibold text-red-500">This action cannot be undone.</span>{" "}
+                                        All your data will be removed from the system immediately.
+                                    </>
+                                }
+                                confirmText="Yes, Delete My Account"
+                                cancelText="Cancel"
+                                isLoading={isDeleting}
+                                loadingText="Deleting..."
+                            />
+
+                            {/* ✅ Password Change Popup */}
+                            <Popup
+                                isOpen={showPasswordConfirm}
+                                onClose={() => setShowPasswordConfirm(false)}
+                                onConfirm={() => { setShowPasswordConfirm(false); changePass(); }}
+                                variant="warning"
+                                title="Change Password"
+                                description="Are you sure you want to change your password? Your current password will no longer work after this."
+                                confirmText="Yes, Change Password"
+                                cancelText="Cancel"
+                            />
+                        </div>
+                    </>
+                </div>
+            </ProtectedRoute>
+        </>
     );
 }

@@ -1,4 +1,6 @@
 "use client";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -66,8 +68,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [modalStep, setModalStep] = useState<ModalStep>(null);
   const [otpEmail, setOtpEmail] = useState("");
+  const searchParams = useSearchParams();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
+  const emailParam = searchParams.get("email");
+  const passwordParam = searchParams.get("password");
+
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
@@ -82,7 +88,12 @@ export default function LoginPage() {
       // ✅ Yeh line add karo
       localStorage.setItem("refresh_token", res.data.data.refresh_token);
       toast.success("Login successful! 🎉");
-      router.push("/dashboard");
+      console.log("Login response:", res.data.data.user);
+      if (res.data.data.user.isTemporaryPassword == true) {
+        router.push(`/dashboard/profile?password=${passwordParam}`);
+      } else {
+        router.push("/dashboard");
+      }
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Login failed!");
@@ -123,6 +134,15 @@ export default function LoginPage() {
       toast.error(error?.message || error?.response?.data?.message || "Incorrect or expired OTP!");
     },
   });
+
+  useEffect(() => {
+    if (emailParam) {
+      setValue("email", emailParam);
+    }
+    if (passwordParam) {
+      setValue("password", passwordParam);
+    }
+  }, [emailParam, passwordParam, setValue]);
 
 
   return (

@@ -4,6 +4,9 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
 import { setCredentials, logout } from "@/store/authSlice";
 import { getMe } from "@/utils/api";
+import toast from "react-hot-toast";
+import { CgClose } from "react-icons/cg";
+import { IoMdClose } from "react-icons/io";
 
 export default function ProtectedRoute({
   children,
@@ -14,9 +17,9 @@ export default function ProtectedRoute({
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(true);
+  const [toastShown, setToastShown] = useState(false);
 
   useEffect(() => {
-    // Auth callback pe protect mat karo
     if (pathname === "/auth/callback") {
       setIsLoading(false);
       return;
@@ -29,28 +32,63 @@ export default function ProtectedRoute({
       return;
     }
 
-    // ✅ Token hai — getMe se fresh user data lo
     getMe()
       .then((res) => {
         const userData = res.data.user;
-        dispatch(setCredentials({
-          user: userData,
-          token: token,
-        }));
-        // ✅ Role based redirect — sirf login ke baad
-        if (pathname === "/dashboard") {
-          // Already sahi jagah hai — kuch nahi karo
+
+        dispatch(
+          setCredentials({
+            user: userData,
+            token: token,
+          })
+        );
+
+        // ✅ GLOBAL TEMP PASSWORD TOAST
+        if (userData?.isTemporaryPassword && !toastShown) {
+          toast((t) => (
+            <div className="relative pt-4">
+              <div>
+                ⚠️ You are using a temporary password.
+                <br />
+                Please update it to continue securely.
+              </div>
+
+              <div className="flex flex-col gap-2 my-2">
+                <button
+                  className="text-yellow-600 underline text-sm"
+                  onClick={() => {
+                    router.push("/dashboard/profile");
+                    toast.dismiss(t.id);
+                  }}
+                >
+                  Update Password
+                </button>
+
+                <button
+                  className="text-gray-500 text-sm absolute -top-1
+                   -right-2"
+                  onClick={() => toast.dismiss(t.id)}
+                >
+                  <IoMdClose />
+                  {/* Close */}
+                </button>
+              </div>
+            </div>
+          ), {
+            duration: Infinity,
+          });
+
+          setToastShown(true);
         }
+
         setIsLoading(false);
       })
-
       .catch(() => {
-        // Token invalid ya expire — logout karo
         dispatch(logout());
         router.push("/login");
       });
 
-  }, [pathname]);
+  }, [pathname, toastShown]);
 
   if (isLoading) {
     return (

@@ -199,6 +199,7 @@
 import { BookOpen, ClipboardList, Video, TrendingUp, UserCog } from "lucide-react";
 import { StatCarduser } from "../component/dashboard/stat-card";
 import PageHeader from "../component/dashboard/page-header";
+import { useAppSelector } from "@/store/hooks";
 
 
 
@@ -246,6 +247,7 @@ const chartData = [
 ];
 
 export default function UserDashboard() {
+  const { user: authUser } = useAppSelector((state) => state.auth);
   return (
     <div className="space-y-6">
 
@@ -260,11 +262,20 @@ export default function UserDashboard() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <StatCarduser key={stat.title} {...stat} />
-        ))}
-      </div>
+      {
+        authUser?.isPaid === false ? (
+          <div className="bg-neutral-50 border border-neutral-400 p-4 rounded text-sm text-neutral-800">
+            ⚠️ You are currently on a free trial. Upgrade to a paid plan to access all features and continue growing your coaching business without interruption.
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-4">
+            {stats.map((stat) => (
+              <StatCarduser key={stat.title} {...stat} />
+            ))}
+          </div>
+        )
+      }
+
 
       {/* Pipeline + Quick Stats */}
       {/* <div className="grid grid-cols-3 gap-4">
