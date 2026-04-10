@@ -12,26 +12,58 @@ import {
   BarChart2,
   Settings,
   LogOut,
+  GraduationCap,
 } from "lucide-react";
 import Image from "next/image";
 import MiniLogo from "@/assets/mini-logo-white.webp";
 import Popup from "@/app/component/ui/popup/popup";
 import { useState } from "react";
+import { useAppSelector } from "@/store/hooks";
+
+// const menuItems = [
+//   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+//   { label: "Leads", href: "/dashboard/leads", icon: Users },
+//   { label: "Programs", href: "/dashboard/programs", icon: GraduationCap },
+//   { label: "Enrollments", href: "/dashboard/enrollments", icon: BookOpen },
+//   { label: "Students", href: "/dashboard/students", icon: UserCog },
+//   { label: "Sessions", href: "/dashboard/sessions", icon: Calendar },
+//   { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
+//   { label: "Certifications", href: "/dashboard/certifications", icon: Award },
+//   { label: "Reports", href: "/dashboard/reports", icon: BarChart2 },
+//   { label: "Settings", href: "/dashboard/settings", icon: Settings },
+// ];
 
 const menuItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Leads", href: "/dashboard/leads", icon: Users },
-  { label: "Enrollments", href: "/dashboard/enrollments", icon: BookOpen },
-  { label: "Students", href: "/dashboard/students", icon: UserCog },
-  { label: "Sessions", href: "/dashboard/sessions", icon: Calendar },
-  { label: "Payments", href: "/dashboard/payments", icon: CreditCard },
-  { label: "Certifications", href: "/dashboard/certifications", icon: Award },
-  { label: "Reports", href: "/dashboard/reports", icon: BarChart2 },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "admin", "sales_manager", "sales_rep"] },
+
+  { label: "Leads", href: "/dashboard/leads", icon: Users, roles: ["super_admin", "admin", "sales_manager", "sales_rep"] },
+
+  { label: "Programs", href: "/dashboard/programs", icon: GraduationCap, roles: ["super_admin", "admin"] },
+
+  { label: "Enrollments", href: "/dashboard/enrollments", icon: BookOpen, roles: ["super_admin", "admin"] },
+
+  { label: "Students", href: "/dashboard/students", icon: UserCog, roles: ["super_admin", "admin"] },
+
+  { label: "Sessions", href: "/dashboard/sessions", icon: Calendar, roles: ["super_admin", "admin"] },
+
+  { label: "Payments", href: "/dashboard/payments", icon: CreditCard, roles: ["super_admin", "admin"] },
+
+  { label: "Certifications", href: "/dashboard/certifications", icon: Award, roles: ["super_admin", "admin"] },
+
+  { label: "Reports", href: "/dashboard/reports", icon: BarChart2, roles: ["super_admin", "admin"] },
+
+  { label: "Settings", href: "/dashboard/settings", icon: Settings, roles: ["super_admin", "admin"] },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { user: authUser } = useAppSelector((state) => state.auth);
+
+  const role = authUser?.role;
+
+  const filteredMenu = menuItems.filter((item) =>
+    item.roles.includes(role)
+  );
   const [showLogout, setShowLogout] = useState(false);
 
   const handleLogout = () => {
@@ -70,7 +102,7 @@ export default function Sidebar() {
       </div>
       {/* Menu Items */}
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => {
+        {filteredMenu.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (

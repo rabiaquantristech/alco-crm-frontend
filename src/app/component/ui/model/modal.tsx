@@ -22,6 +22,7 @@ export default function Modal({
   onBack,
   // ✅ Tabs ke liye naye props
   tabs,
+  zIndex = 50,
 }: ModalProps) {
   // const [form, setForm] = useState<Record<string, string | boolean>>(
   //   fields.reduce((acc, field) => {
@@ -59,8 +60,8 @@ export default function Modal({
   const currentTab = tabs?.find((t) => t.key === activeTab);
   // const activeFields = tabs ? (currentTab?.fields || []) : fields;
   const activeFields = tabs
-  ? (currentTab?.fields || [])
-  : fields.filter((field) => {
+    ? (currentTab?.fields || [])
+    : fields.filter((field) => {
       if (mode === "edit") {
         const value = initialValues?.[field.name];
         return value !== undefined && value !== null && value !== "";
@@ -110,6 +111,7 @@ export default function Modal({
             label={field.label}
             options={field.options || []}
             value={form[field.name] as string}
+            defaultValue={field.defaultValue as string}
             onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
             disabled={field?.disabled}
           />
@@ -135,22 +137,25 @@ export default function Modal({
             disabled={field.disabled}
           />
         );
-        case "custom":
-          return (
-            <div key={field.name}>
-              {field.render
-                ? field.render(
-                    form[field.name] as string | boolean,
-                    (updatedValue) => setForm({ ...form, [field.name]: updatedValue })
-                  )
-                : null}
-            </div>
-          );
+      case "custom":
+        return (
+          <div key={field.name}>
+            {field.render
+              ? field.render(
+                form[field.name] as string | boolean,
+                (updatedValue) => setForm({ ...form, [field.name]: updatedValue })
+              )
+              : null}
+          </div>
+        );
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+      style={{ zIndex }}
+    >
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl">
 
         {/* Header */}
@@ -179,8 +184,8 @@ export default function Modal({
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`py-3 px-4 text-sm font-medium transition border-b-2 -mb-px ${activeTab === tab.key
-                    ? "border-yellow-400 text-yellow-600"
-                    : "border-transparent text-gray-400 hover:text-gray-600"
+                  ? "border-yellow-400 text-yellow-600"
+                  : "border-transparent text-gray-400 hover:text-gray-600"
                   }`}
               >
                 {tab.label}

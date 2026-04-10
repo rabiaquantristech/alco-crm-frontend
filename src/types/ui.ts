@@ -43,6 +43,7 @@ export type ModalField = {
   name: string;
   label: string;
   type: FieldType;
+  defaultValue?: string | boolean;
   placeholder?: string;
   inputType?: string; // "text" | "email" | "password" | "number"
   options?: { label: string; value: string, disabled?: boolean }[]; // select ke liye
@@ -71,6 +72,7 @@ export  type ModalProps = {
   mode?: "add" | "edit";
   step?: "forgot" | "reset";  
   onBack?: () => void;  
-  tabs?: ModalTab[];       
+  tabs?: ModalTab[];  
+  zIndex?: number;     
 };
 
