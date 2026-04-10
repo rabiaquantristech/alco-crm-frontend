@@ -11,8 +11,9 @@ import Popup from "@/app/component/ui/popup/popup";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { GraduationCap, Pencil, Trash2, Copy, BookMarked, Users, Clock, Star } from "lucide-react";
-import CoursesModal from "./courses-modal";
-import BatchesModal from "./batches-modal";
+import CoursesModal from "../../programs-with-modal/components/courses-modal";
+import BatchesModal from "../../programs-with-modal/components/batches-modal";
+
 
 
 const programFields: ModalField[] = [

@@ -14,7 +14,7 @@ import ProtectedRoute from "@/app/component/protected-route";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { Play, Pencil, Trash2, Video, FileText, Mic } from "lucide-react";
-import Breadcrumb from "../../../components/breadcrumb";
+import Breadcrumb from "@/app/component/ui/breadcrumb";
 
 const lessonFields: ModalField[] = [
   { name: "title", label: "Lesson Title", type: "input", inputType: "text", placeholder: "NLP Basics" },

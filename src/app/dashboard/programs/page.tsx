@@ -6,7 +6,7 @@ import {
   adminGetPrograms, adminCreateProgram,
   adminUpdateProgram, adminDeleteProgram, adminDuplicateProgram
 } from "@/utils/api";
-import PageHeader from "@/app/component/dashboard/page-header";
+import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import Modal from "@/app/component/ui/model/modal";
 import Popup from "@/app/component/ui/popup/popup";
 import ProtectedRoute from "@/app/component/protected-route";
@@ -86,15 +86,37 @@ export default function ProgramsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<any>(null);
   const [deletingProgram, setDeletingProgram] = useState<any>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [filters, setFilters] = useState({
+    search: "",
+    status: "",
+    category: "",
+  });
+
+  const filterFields: FilterField[] = [
+    { name: "search", type: "input", placeholder: "Search programs..." },
+    {
+      name: "status", type: "select", options: [
+        { label: "Active", value: "active" },
+        { label: "Draft", value: "draft" },
+        { label: "Inactive", value: "inactive" },
+      ]
+    },
+    {
+      name: "category", type: "select", options: [
+        { label: "NLP", value: "nlp" },
+        { label: "ICF", value: "icf" },
+        { label: "Hypnotherapy", value: "hypnotherapy" },
+        { label: "Trainer", value: "trainer" },
+      ]
+    },
+  ];
+  // const [search, setSearch] = useState("");
+  // const [statusFilter, setStatusFilter] = useState("");
+  // const [categoryFilter, setCategoryFilter] = useState("");
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["admin-programs", search, statusFilter, categoryFilter],
-    queryFn: () => adminGetPrograms({
-      search, status: statusFilter, category: categoryFilter
-    }).then(res => res.data),
+    queryKey: ["admin-programs", filters],
+    queryFn: () => adminGetPrograms(filters).then(res => res.data),
   });
 
   const { mutate: addProgram, isPending: isAdding } = useMutation({
@@ -144,47 +166,10 @@ export default function ProgramsPage() {
         titleIcon={<BookOpen size={24} />}
         totalCount={data?.meta?.total ?? 0}
         onAdd={() => setIsAddOpen(true)}
+        filters={filters}
+        setFilters={setFilters}
+        filterFields={filterFields}
       />
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <input
-          type="text"
-          placeholder="Search programs..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-300 w-56"
-        />
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-300"
-        >
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="draft">Draft</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-300"
-        >
-          <option value="">All Categories</option>
-          <option value="nlp">NLP</option>
-          <option value="icf">ICF</option>
-          <option value="hypnotherapy">Hypnotherapy</option>
-          <option value="trainer">Trainer</option>
-        </select>
-        {(search || statusFilter || categoryFilter) && (
-          <button
-            onClick={() => { setSearch(""); setStatusFilter(""); setCategoryFilter(""); }}
-            className="text-sm text-gray-400 hover:text-red-500 transition"
-          >
-            Reset
-          </button>
-        )}
-      </div>
 
       {/* Programs Grid */}
       {isLoading ? (

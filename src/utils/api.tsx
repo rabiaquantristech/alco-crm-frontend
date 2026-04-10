@@ -130,12 +130,14 @@ export const adminGetCourses = (programId: string) => API.get(`/api/v1/programs/
 export const adminCreateCourse = (programId: string, data: any) => API.post(`/api/v1/programs/${programId}/courses`, data);
 export const adminUpdateCourse = (id: string, data: any) => API.put(`/api/v1/programs/courses/${id}`, data);
 export const adminDeleteCourse = (id: string) => API.delete(`/api/v1/programs/courses/${id}`);
+export const adminGetCourseById = (id: string) => API.get(`/api/v1/programs/courses/${id}`);
 
 // Module APIs
 export const adminGetModules = (courseId: string) => API.get(`/api/v1/programs/courses/${courseId}/modules`);
 export const adminCreateModule = (courseId: string, data: any) => API.post(`/api/v1/programs/courses/${courseId}/modules`, data);
 export const adminUpdateModule = (id: string, data: any) => API.put(`/api/v1/programs/modules/${id}`, data);
 export const adminDeleteModule = (id: string) => API.delete(`/api/v1/programs/modules/${id}`);
+export const adminGetModuleById = (id: string) => API.get(`/api/v1/programs/modules/${id}`);
 
 // Lesson APIs
 export const adminGetLessons = (moduleId: string) => API.get(`/api/v1/programs/modules/${moduleId}/lessons`);

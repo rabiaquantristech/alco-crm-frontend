@@ -13,7 +13,7 @@ import ProtectedRoute from "@/app/component/protected-route";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { BookOpen, Pencil, Trash2, ChevronRight, Layers } from "lucide-react";
-import Breadcrumb from "../components/breadcrumb";
+import Breadcrumb from "@/app/component/ui/breadcrumb";
 
 const courseFields: ModalField[] = [
   { name: "title", label: "Course Title", type: "input", inputType: "text", placeholder: "Introduction to NLP" },

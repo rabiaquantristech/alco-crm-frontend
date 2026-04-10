@@ -14,7 +14,7 @@ import ProtectedRoute from "@/app/component/protected-route";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
 import { Layers, Pencil, Trash2, ChevronRight, Play } from "lucide-react";
-import Breadcrumb from "../../components/breadcrumb";
+import Breadcrumb from "@/app/component/ui/breadcrumb";
 
 const moduleFields: ModalField[] = [
   { name: "title", label: "Module Title", type: "input", inputType: "text", placeholder: "What is NLP?" },
