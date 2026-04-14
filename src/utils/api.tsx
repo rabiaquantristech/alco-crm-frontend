@@ -122,8 +122,6 @@ export const adminUpdateProgram = (id: string, data: any) => API.put(`/api/v1/pr
 export const adminDeleteProgram = (id: string) => API.delete(`/api/v1/programs/${id}`);
 export const adminDuplicateProgram = (id: string) => API.post(`/api/v1/programs/${id}/duplicate`);
 export const adminGetProgramById = (id: string) => API.get(`/api/v1/programs/${id}`);
-// export const adminGetCourseById = (id: string) => API.get(`/api/admin/v1/courses/${id}`);
-// export const adminGetModuleById = (id: string) => API.get(`/api/admin/v1/modules/${id}`);
 
 // Course APIs
 export const adminGetCourses = (programId: string) => API.get(`/api/v1/programs/${programId}/courses`);
@@ -150,5 +148,16 @@ export const adminGetBatches = (params?: any) => API.get("/api/v1/programs/batch
 export const adminCreateBatch = (data: any) => API.post("/api/v1/programs/batches", data);
 export const adminUpdateBatch = (id: string, data: any) => API.put(`/api/v1/programs/batches/${id}`, data);
 export const adminDeleteBatch = (id: string) => API.delete(`/api/v1/programs/batches/${id}`);
+
+//--------------------------------- website blog ------------------------
+export const adminGetBlogs = (params?: any) => API.get("/api/v1/blogs", { params });
+export const adminCreateBlog = (data: any) => API.post("/api/v1/blogs", data);
+// export const adminUpdateBlog = (id: string, data: any) => API.put(`/api/v1/blogs/${id}`, data);
+export const adminUpdateBlog = (id: string, data: any) => API.put(`/api/v1/blogs/${id}`, data);
+export const adminDeleteBlog = (id: string) => API.delete(`/api/v1/blogs/${id}`);
+export const adminPublishBlog = (id: string) => API.post(`/api/v1/blogs/${id}/publish`);
+export const getBlogBySlug = (slug: string) =>
+  API.get(`/api/v1/blogs/public/${slug}`);
+
 
 export default API;
