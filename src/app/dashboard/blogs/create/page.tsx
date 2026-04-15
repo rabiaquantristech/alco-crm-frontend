@@ -1,14 +1,13 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { getBlogBySlug, adminUpdateBlog } from "@/utils/api";
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { adminCreateBlog } from "@/utils/api";
 import ProtectedRoute from "@/app/component/protected-route";
 import BlockEditor, { Block } from "@/app/dashboard/blogs/component/block-editor";
 import Breadcrumb from "@/app/component/ui/breadcrumb";
 import toast from "react-hot-toast";
-import { Save, ArrowLeft, FileText } from "lucide-react";
-import normalizeContentBlocks from "@/helper/helper";
+import { Save, ArrowLeft, FilePlus } from "lucide-react";
 
 // ── Constants ──
 const categories = ["nlp", "icf", "hypnotherapy", "coaching", "mindset", "general"];
@@ -32,24 +31,21 @@ function ThumbnailUploader({
     onChange,
 }: {
     value: string;
-    onChange: (base64: string) => void;
+    onChange: (url: string) => void;
 }) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
-    // const handleFile = (file: File) => {
-    //     if (!file.type.startsWith("image/")) return;
-    //     const reader = new FileReader();
-    //     reader.onload = (e) => {
-    //         if (e.target?.result) onChange(e.target.result as string);
-    //     };
-    //     reader.readAsDataURL(file);
-    // };
     const handleFile = async (file: File) => {
         if (!file.type.startsWith("image/")) return;
-
-        const url = await uploadToCloudinary(file);
-        onChange(url); // 👈 ONLY URL STORE
+        setUploading(true);
+        try {
+            const url = await uploadToCloudinary(file);
+            onChange(url);
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -61,8 +57,6 @@ function ThumbnailUploader({
 
     return (
         <div className="relative group rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-
-            {/* ✅ ALWAYS MOUNT INPUT */}
             <input
                 ref={inputRef}
                 type="file"
@@ -74,12 +68,14 @@ function ThumbnailUploader({
                 }}
             />
 
-            {value ? (
+            {uploading ? (
+                <div className="h-48 flex items-center justify-center">
+                    <div className="w-6 h-6 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+            ) : value ? (
                 <>
                     <img src={value} className="w-full h-56 object-cover" />
-
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-3 transition">
-
                         <button
                             type="button"
                             onClick={() => {
@@ -92,7 +88,6 @@ function ThumbnailUploader({
                         >
                             Change
                         </button>
-
                         <button
                             type="button"
                             onClick={() => onChange("")}
@@ -100,7 +95,6 @@ function ThumbnailUploader({
                         >
                             Remove
                         </button>
-
                     </div>
                 </>
             ) : (
@@ -114,9 +108,12 @@ function ThumbnailUploader({
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
                     onDrop={handleDrop}
-                    className="h-48 flex items-center justify-center border-2 border-dashed"
+                    className={`h-48 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition gap-2 ${
+                        isDragging ? "border-yellow-400 bg-yellow-50" : "border-gray-200 hover:border-yellow-300"
+                    }`}
                 >
-                    Click to upload thumbnail
+                    <span className="text-sm text-gray-400">Click or drag to upload thumbnail</span>
+                    <span className="text-xs text-gray-300">PNG, JPG, WEBP supported</span>
                 </div>
             )}
         </div>
@@ -124,36 +121,22 @@ function ThumbnailUploader({
 }
 
 // ── Label Helper ──
-
 function Label({ children }: { children: React.ReactNode }) {
-
     return <label className="text-sm font-medium text-gray-700 mb-1.5 block">{children}</label>;
-
 }
-
-
 
 // ── Section Card ──
-
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
-
     return (
-
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-5">{title}</h3>
-
             <div className="space-y-5">{children}</div>
-
         </div>
-
     );
-
 }
 
-// ── Main Edit Page ──
-export default function EditBlogPage() {
-    const { slug } = useParams();
+// ── Main Create Page ──
+export default function CreateBlogPage() {
     const router = useRouter();
 
     const [form, setForm] = useState({
@@ -168,58 +151,26 @@ export default function EditBlogPage() {
         is_featured: false,
     });
 
-    // ── Fetch Blog ──
-    const { data, isLoading } = useQuery({
-        queryKey: ["admin-blog-slug", slug],
-        queryFn: () => getBlogBySlug(slug as string).then((res) => res.data?.data),
-        enabled: !!slug,
-    });
-
-    // ── Populate form when data loads ──
-    useEffect(() => {
-        if (data) {
-            setForm({
-                thumbnail: data.thumbnail || "",
-                title: data.title || "",
-                excerpt: data.excerpt || "",
-                content: Array.isArray(data.content) ? normalizeContentBlocks(data.content) : [],
-                category: data.category || "general",
-                tags: data.tags?.join(", ") || "",
-                read_time: data.read_time?.toString() || "5",
-                status: data.status || "draft",
-                is_featured: data.is_featured || false,
-            });
-        }
-    }, [data]);
-
-    // ── Update Mutation ──
-    const { mutate: updateBlog, isPending } = useMutation({
-        mutationFn: (payload: any) => {
-            if (!data?._id) {
-                throw new Error("Blog ID not found");
-            }
-            return adminUpdateBlog(data._id, payload);
-        },
+    // ── Create Mutation ──
+    const { mutate: createBlog, isPending } = useMutation({
+        mutationFn: (payload: any) => adminCreateBlog(payload),
         onSuccess: () => {
-            toast.success("Blog updated successfully!");
-            // router.push("/dashboard/blogs");
+            toast.success("Blog created successfully!");
+            router.push("/dashboard/blogs");
         },
-        onError: (error) => {
-            console.error("Update error:", error);
-            toast.error("Failed to update blog!");
+        onError: (error: any) => {
+            console.error("Create error:", error);
+            toast.error(error?.response?.data?.message || "Failed to create blog!");
         },
     });
 
     const formattedContent = form.content.map((block) => {
         const isList = block.type === "ul" || block.type === "ol";
-
         return {
-            _id: block?._id, // ✅ id fix
             type: block.type,
             text: isList ? undefined : block.text,
             items: isList
                 ? (block.items || []).map((item) => ({
-                    _id: item._id,
                     text: item.text,
                     bold: item.bold || "",
                 }))
@@ -227,48 +178,20 @@ export default function EditBlogPage() {
         };
     });
 
-    // ── handleSubmit function ──
+    // ── handleSubmit ──
     const handleSubmit = () => {
         if (!form.title.trim()) {
             toast.error("Title is required!");
             return;
         }
 
-        // const hasEmpty = form.content.some((b: Block) => {
-        //     const isList = b.type === "ul" || b.type === "ol";
-        //     return isList ? !b.items?.some((i) => String(i?.text || "").trim()) : !b.text?.trim();
-        // });
-
-        // if (!form.content.length || hasEmpty) {
-        //     document.getElementById("block-editor-validate")?.click();
-        //     toast.error("Fill all content blocks or remove empty ones!");
-        //     return;
-        // }
-
-        // updateBlog({
-        //     ...form,
-        //     tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
-        //     read_time: Number(form.read_time),
-        // });
-
-        updateBlog({
+        createBlog({
             ...form,
-            content: formattedContent, // ✅ FIXED
-            tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+            content: formattedContent,
+            tags: form.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
             read_time: Number(form.read_time),
         });
     };
-
-    // ── Loading State ──
-    if (isLoading) {
-        return (
-            <ProtectedRoute>
-                <div className="flex justify-center py-32">
-                    <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-                </div>
-            </ProtectedRoute>
-        );
-    }
 
     return (
         <ProtectedRoute>
@@ -276,7 +199,7 @@ export default function EditBlogPage() {
             <Breadcrumb
                 items={[
                     { label: "Blogs", href: "/dashboard/blogs" },
-                    { label: data?.title || "Edit Blog" },
+                    { label: "Create Blog" },
                 ]}
             />
 
@@ -284,12 +207,9 @@ export default function EditBlogPage() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <FileText size={24} />
-                        Edit Blog
+                        <FilePlus size={24} />
+                        Create Blog
                     </h1>
-                    {/* <p className="text-gray-400 text-sm mt-1">
-                        Editing: <span className="text-gray-600 font-medium">{data?.title}</span>
-                    </p> */}
                 </div>
                 <div className="flex items-center gap-3">
                     <button
@@ -305,7 +225,7 @@ export default function EditBlogPage() {
                         className="flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
                     >
                         <Save size={15} />
-                        {isPending ? "Saving..." : "Save Changes"}
+                        {isPending ? "Publishing..." : "Publish Blog"}
                     </button>
                 </div>
             </div>
@@ -339,7 +259,7 @@ export default function EditBlogPage() {
 
                     <Card title="Content">
                         <BlockEditor
-                            value={form?.content}
+                            value={form.content}
                             onChange={(blocks) => setForm({ ...form, content: blocks })}
                         />
                     </Card>
@@ -350,7 +270,7 @@ export default function EditBlogPage() {
                     <Card title="Thumbnail">
                         <ThumbnailUploader
                             value={form.thumbnail}
-                            onChange={(base64) => setForm({ ...form, thumbnail: base64 })}
+                            onChange={(url) => setForm({ ...form, thumbnail: url })}
                         />
                     </Card>
 
@@ -419,7 +339,7 @@ export default function EditBlogPage() {
                         className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition disabled:opacity-50"
                     >
                         <Save size={15} />
-                        {isPending ? "Saving..." : "Save Changes"}
+                        {isPending ? "Publishing..." : "Publish Blog"}
                     </button>
                 </div>
             </div>

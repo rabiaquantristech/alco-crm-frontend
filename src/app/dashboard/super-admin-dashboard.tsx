@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminGetAllUsers, adminUpdateUser, adminDeleteUser, adminDeleteAllUsers, adminCreateUser, adminAssignRole, adminUpdateUserPassword } from "@/utils/api";
 import { User, UserRole, UsersResponse } from "@/types/apiType";
 import ProtectedRoute from "@/app/component/protected-route";
 import toast from "react-hot-toast";
-import { Pencil, Trash2, UserCog, Plus } from "lucide-react";
+import { Pencil, Trash2, UserCog, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import Modal from "../component/ui/model/modal";
 import { ModalField } from "@/types/ui";
 import Button from "@/app/component/ui/button";
@@ -35,12 +35,14 @@ export default function SuperAdminDashboard() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [showDeleteAll, setShowDeleteAll] = useState(false);
-  const { user: authUser } = useAppSelector((state) => state.auth);
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   // Fetch Users
   const { data, isLoading, isError } = useQuery<UsersResponse>({
-    queryKey: ["admin-users"],
-    queryFn: () => adminGetAllUsers().then((res) => res.data),
+    queryKey: ["admin-users", page], // ✅ IMPORTANT FIX
+    queryFn: () =>
+      adminGetAllUsers({ page, limit }).then((res) => res.data),
   });
 
   // Add User
@@ -114,6 +116,10 @@ export default function SuperAdminDashboard() {
     setDeletingId(id);
     deleteUser(id);
   };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
 
   return (
     <ProtectedRoute>
@@ -239,6 +245,40 @@ export default function SuperAdminDashboard() {
           },
         ]}
       />
+      <>
+        {data?.totalPages >= 1 && (
+          <div className="flex items-center justify-between mt-8">
+            <p className="text-xs text-gray-400">
+              Page{" "}
+              <span className="font-semibold text-gray-700">{page}</span>
+              {" "}of{" "}
+              <span className="font-semibold text-gray-700">{data?.totalPages}</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+
+              >
+                <ChevronLeft size={14} />
+                Prev
+              </button>
+
+              <button
+                onClick={() =>
+                  setPage((p) => Math.min(data?.totalPages || 1, p + 1))
+                }
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                disabled={page === data?.totalPages}
+              >
+                Next
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </>
 
       {/* Add User Modal */}
       <Modal

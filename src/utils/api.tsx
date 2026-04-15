@@ -85,7 +85,7 @@ export const resetPassword = (data: { email: string; otp: string; newPassword: s
 export const getMe = () => API.get("/api/auth/me");
 
 // Admin APIs
-export const adminGetAllUsers = () => API.get("/api/admin/users");
+export const adminGetAllUsers = (params?: any) => API.get("/api/admin/users", { params });
 export const adminGetUserById = (id: string) => API.get(`/api/admin/users/${id}`);
 export const adminUpdateUser = (id: string, data: UpdateUserData) => API.patch(`/api/admin/users/${id}`, data);
 export const adminDeleteUser = (id: string) => API.delete(`/api/admin/users/${id}`);
