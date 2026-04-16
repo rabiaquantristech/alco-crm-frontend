@@ -83,15 +83,30 @@ export default function BlogsPage() {
       toast.error(e?.response?.data?.message || "Failed to create blog!"),
   });
 
-  const { mutate: updateBlog, isPending: isUpdating } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      adminUpdateBlog(id, data),
-    onSuccess: () => {
-      toast.success("Blog updated!");
-      setEditingBlog(null);
-      queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
+  // const { mutate: updateBlog, isPending: isUpdating } = useMutation({
+  //   mutationFn: ({ id, data }: { id: string; data: any }) =>
+  //     adminUpdateBlog(id, data),
+  //   onSuccess: () => {
+  //     toast.success("Blog updated!");
+  //     setEditingBlog(null);
+  //     queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
+  //   },
+  //   onError: () => toast.error("Failed to update blog!"),
+  // });
+
+  const { mutate: updateBlog, isPending } = useMutation({
+    mutationFn: (payload: any) => {
+      const identifier = data?.slug; // ✅ slug use karo
+      if (!identifier) throw new Error("Blog slug not found");
+      return adminUpdateBlog(identifier, payload);
     },
-    onError: () => toast.error("Failed to update blog!"),
+    onSuccess: () => {
+      toast.success("Blog updated successfully!");
+    },
+    onError: (error) => {
+      console.error("Update error:", error);
+      toast.error("Failed to update blog!");
+    },
   });
 
   const { mutate: deleteBlog, isPending: isDeleting } = useMutation({
@@ -206,7 +221,7 @@ export default function BlogsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {data?.data?.map((blog: any) => (
               <div
-                key={blog._id}
+                key={blog?._id}
                 className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition group"
               >
                 {/* Thumbnail */}
@@ -226,8 +241,8 @@ export default function BlogsPage() {
                   <div className="absolute top-3 left-3">
                     <span
                       className={`text-xs px-2 py-1 rounded-full font-medium ${blog.status === "published"
-                          ? "bg-emerald-500 text-white"
-                          : "bg-yellow-400 text-gray-800"
+                        ? "bg-emerald-500 text-white"
+                        : "bg-yellow-400 text-gray-800"
                         }`}
                     >
                       {blog.status}
@@ -281,7 +296,7 @@ export default function BlogsPage() {
                     <div className="flex items-center gap-1">
                       {blog.status === "draft" && (
                         <button
-                          onClick={() => publishBlog(blog._id)}
+                          onClick={() => publishBlog(blog.id)}
                           className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition"
                           title="Publish"
                         >
@@ -308,7 +323,7 @@ export default function BlogsPage() {
               </div>
             ))}
           </div>
-          
+
           {/* ── Pagination ── */}
           {totalPages >= 1 && (
             <div className="flex items-center justify-between mt-8">
@@ -339,7 +354,7 @@ export default function BlogsPage() {
             </div>
           )}
 
-          
+
         </>
       )}
 
@@ -362,7 +377,7 @@ export default function BlogsPage() {
           initialData={editingBlog}
           onSubmit={(data) => updateBlog({ id: editingBlog._id, data })}
           onClose={() => setEditingBlog(null)}
-          isLoading={isUpdating}
+          isLoading={isPending}
           mode="edit"
         />
       )}
@@ -372,7 +387,7 @@ export default function BlogsPage() {
         <Popup
           isOpen={!!deletingBlog}
           onClose={() => setDeletingBlog(null)}
-          onConfirm={() => deleteBlog(deletingBlog._id)}
+          onConfirm={() => deleteBlog(deletingBlog.id)}
           variant="danger"
           title="Delete Blog"
           description={

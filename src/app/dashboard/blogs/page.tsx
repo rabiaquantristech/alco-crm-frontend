@@ -85,19 +85,34 @@ export default function BlogsPage() {
       toast.error(e?.response?.data?.message || "Failed to create blog!"),
   });
 
-  const { mutate: updateBlog, isPending: isUpdating } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      adminUpdateBlog(id, data),
-    onSuccess: () => {
-      toast.success("Blog updated!");
-      setEditingBlog(null);
-      queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
-    },
-    onError: () => toast.error("Failed to update blog!"),
-  });
+  // const { mutate: updateBlog, isPending: isUpdating } = useMutation({
+  //   mutationFn: ({ id, data }: { id: string; data: any }) =>
+  //     adminUpdateBlog(id, data),
+  //   onSuccess: () => {
+  //     toast.success("Blog updated!");
+  //     setEditingBlog(null);
+  //     queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
+  //   },
+  //   onError: () => toast.error("Failed to update blog!"),
+  // });
+
+  const { mutate: updateBlog, isPending } = useMutation({
+  mutationFn: (payload: any) => {
+    const identifier = data?.slug; // ✅ slug use karo
+    if (!identifier) throw new Error("Blog slug not found");
+    return adminUpdateBlog(identifier, payload);
+  },
+  onSuccess: () => {
+    toast.success("Blog updated successfully!");
+  },
+  onError: (error) => {
+    console.error("Update error:", error);
+    toast.error("Failed to update blog!");
+  },
+});
 
   const { mutate: deleteBlog, isPending: isDeleting } = useMutation({
-    mutationFn: (id: string) => adminDeleteBlog(id),
+    mutationFn: (slug: string) => adminDeleteBlog(slug),
     onSuccess: () => {
       toast.success("Blog deleted!");
       setDeletingBlog(null);
@@ -107,7 +122,7 @@ export default function BlogsPage() {
   });
 
   const { mutate: publishBlog } = useMutation({
-    mutationFn: (id: string) => adminPublishBlog(id),
+    mutationFn: (slug: string) => adminPublishBlog(slug),
     onSuccess: () => {
       toast.success("Blog published!");
       queryClient.invalidateQueries({ queryKey: ["admin-blogs"] });
@@ -210,7 +225,7 @@ export default function BlogsPage() {
               // const blogKey = blog._id || blog.slug || Math.random().toString(36);
               return (
                 <div
-                  key={blog._id}
+                  key={blog?._id}
                   className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition group"
                 >
                   {/* Thumbnail */}
@@ -285,7 +300,7 @@ export default function BlogsPage() {
                       <div className="flex items-center gap-1">
                         {blog.status === "draft" && (
                           <button
-                            onClick={() => publishBlog(blog._id)}
+                            onClick={() => publishBlog(blog.slug)}
                             className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition"
                             title="Publish"
                           >
@@ -368,7 +383,7 @@ export default function BlogsPage() {
           initialData={editingBlog}
           onSubmit={(data) => updateBlog({ id: editingBlog._id, data })}
           onClose={() => setEditingBlog(null)}
-          isLoading={isUpdating}
+          isLoading={isPending}
           mode="edit"
         />
       )}
@@ -378,7 +393,7 @@ export default function BlogsPage() {
         <Popup
           isOpen={!!deletingBlog}
           onClose={() => setDeletingBlog(null)}
-          onConfirm={() => deleteBlog(deletingBlog._id)}
+          onConfirm={() => deleteBlog(deletingBlog.slug)}
           variant="danger"
           title="Delete Blog"
           description={

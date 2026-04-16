@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getBlogBySlug, adminUpdateBlog } from "@/utils/api";
+import { adminGetBlogBySlug, adminUpdateBlog } from "@/utils/api";
 import ProtectedRoute from "@/app/component/protected-route";
 import BlockEditor, { Block } from "@/app/dashboard/blogs/component/block-editor";
 import Breadcrumb from "@/app/component/ui/breadcrumb";
@@ -171,7 +171,7 @@ export default function EditBlogPage() {
     // ── Fetch Blog ──
     const { data, isLoading } = useQuery({
         queryKey: ["admin-blog-slug", slug],
-        queryFn: () => getBlogBySlug(slug as string).then((res) => res.data?.data),
+        queryFn: () => adminGetBlogBySlug(slug as string).then((res) => res.data?.data),
         enabled: !!slug,
     });
 
@@ -192,21 +192,39 @@ export default function EditBlogPage() {
         }
     }, [data]);
 
+    console.log(data, "datadatadatadatadatadatadatadata")
+
     // ── Update Mutation ──
+    // const { mutate: updateBlog, isPending } = useMutation({
+    //     mutationFn: (payload: any) => {
+    //         const blogId = data?._id || data?.id; // ✅ dono check karo
+    //         if (!blogId) throw new Error("Blog ID not found");
+    //         return adminUpdateBlog(blogId, payload);
+    //     },
+    //     onSuccess: () => {
+    //         toast.success("Blog updated successfully!");
+    //         // router.push("/dashboard/blogs");
+    //     },
+    //     onError: (error) => {
+    //         console.error("Update error:", error);
+    //         toast.error("Failed to update blog!");
+    //     },
+    // });
     const { mutate: updateBlog, isPending } = useMutation({
         mutationFn: (payload: any) => {
-            if (!data?._id) {
-                throw new Error("Blog ID not found");
-            }
-            return adminUpdateBlog(data._id, payload);
+            const identifier = data?.slug;
+            if (!identifier) throw new Error("Blog not found");
+            return adminUpdateBlog(identifier, payload);
         },
-        onSuccess: () => {
+        onSuccess: (res) => {
             toast.success("Blog updated successfully!");
-            // router.push("/dashboard/blogs");
+            const newSlug = res?.data?.data?.slug;
+            if (newSlug && newSlug !== slug) {
+                router.replace(`/dashboard/blogs/${newSlug}`);
+            }
         },
-        onError: (error) => {
-            console.error("Update error:", error);
-            toast.error("Failed to update blog!");
+        onError: (error: any) => {
+            toast.error(error?.response?.data?.message || "Failed to update blog!");
         },
     });
 
@@ -214,12 +232,12 @@ export default function EditBlogPage() {
         const isList = block.type === "ul" || block.type === "ol";
 
         return {
-            _id: block?._id, // ✅ id fix
+            _id: block?._id || undefined, // ✅ id fix
             type: block.type,
             text: isList ? undefined : block.text,
             items: isList
                 ? (block.items || []).map((item) => ({
-                    _id: item._id,
+                    _id: item._id || undefined,
                     text: item.text,
                     bold: item.bold || "",
                 }))

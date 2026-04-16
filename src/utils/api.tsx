@@ -1,13 +1,13 @@
 // ✅ api.ts — poora updated file
 import axios from "axios";
 import { LoginData, RegisterData, UpdateUserData } from "@/types/apiType";
-
+ 
 const API = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-  withCredentials: false,
+  withCredentials: true, // Set to true to include cookies in requests
 });
-
-// Token auto attach
+ 
+// Token auto-attach
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -15,17 +15,15 @@ API.interceptors.request.use((config) => {
   }
   return config;
 });
-
-// ✅ 401 pe refresh token try karo, fail ho toh logout
+ 
+// Handle 401 response and refresh token
 let isRefreshing = false;
-
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
+ 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Infinite loop rokne ke liye
       if (isRefreshing) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -33,37 +31,28 @@ API.interceptors.response.use(
         window.location.href = "/login";
         return Promise.reject(error);
       }
-
+ 
       originalRequest._retry = true;
       isRefreshing = true;
-
+ 
       try {
         const refresh_token = localStorage.getItem("refresh_token");
-
-        if (!refresh_token) {
-          throw new Error("No refresh token");
-        }
-
-        // Naya access token lo
+        if (!refresh_token) throw new Error("No refresh token");
+ 
         const res = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
           { refresh_token }
         );
-
+ 
         const newAccessToken = res.data.data.access_token;
         const newRefreshToken = res.data.data.refresh_token;
-
-        // Naye tokens save karo
+ 
         localStorage.setItem("token", newAccessToken);
         localStorage.setItem("refresh_token", newRefreshToken);
-
-        // Original request dobara karo naye token ke saath
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         isRefreshing = false;
         return API(originalRequest);
-
       } catch (refreshError) {
-        // Refresh bhi fail — logout karo
         isRefreshing = false;
         localStorage.removeItem("token");
         localStorage.removeItem("user");
@@ -72,12 +61,12 @@ API.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
-
+ 
     return Promise.reject(error);
   }
 );
-
-// Auth APIs
+ 
+// Define your API functions here, ensuring proper types
 export const loginUser = (data: LoginData) => API.post("/api/auth/login", data);
 export const registerUser = (data: RegisterData) => API.post("/api/auth/register", data);
 export const forgotPassword = (data: { email: string }) => API.post("/api/auth/forgot-password", data);
@@ -153,11 +142,12 @@ export const adminDeleteBatch = (id: string) => API.delete(`/api/v1/programs/bat
 export const adminGetBlogs = (params?: any) => API.get("/api/v1/blogs", { params });
 export const adminCreateBlog = (data: any) => API.post("/api/v1/blogs", data);
 // export const adminUpdateBlog = (id: string, data: any) => API.put(`/api/v1/blogs/${id}`, data);
-export const adminUpdateBlog = (id: string, data: any) => API.put(`/api/v1/blogs/${id}`, data);
-export const adminDeleteBlog = (id: string) => API.delete(`/api/v1/blogs/${id}`);
-export const adminPublishBlog = (id: string) => API.post(`/api/v1/blogs/${id}/publish`);
-export const getBlogBySlug = (slug: string) =>
-  API.get(`/api/v1/blogs/public/${slug}`);
+export const adminUpdateBlog = (slugOrId: string, data: any) => 
+  API.put(`/api/v1/blogs/${slugOrId}`, data);
+export const adminDeleteBlog = (slug: string) => API.delete(`/api/v1/blogs/${slug}`);
+export const adminPublishBlog = (slug: string) => API.post(`/api/v1/blogs/${slug}/publish`);
+export const adminGetBlogBySlug = (slug: string) =>
+  API.get(`/api/v1/blogs/admin/${slug}`);
 
 
 export default API;
