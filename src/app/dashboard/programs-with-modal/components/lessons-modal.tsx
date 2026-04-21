@@ -22,7 +22,7 @@ const lessonFields: ModalField[] = [
       { label: "Live Session", value: "live_session" },
     ]
   },
-  { name: "content_url", label: "Content URL", type: "input", inputType: "text", placeholder: "https://..." },
+  { name: "content_url", label: "Content URL", type: "uploadInput", inputType: "text", placeholder: "https://..." },
   { name: "duration_minutes", label: "Duration (mins)", type: "input", inputType: "text", placeholder: "45" },
   {
     name: "status", label: "Status", type: "select",

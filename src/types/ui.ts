@@ -37,7 +37,7 @@ export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   error?: FieldError;
 };
 
-export type FieldType = "input" | "select" | "textarea" | "checkbox" | "custom";
+export type FieldType = "input" | "select" | "textarea" | "checkbox" | "uploadInput" | "custom";
 
 export type ModalField = {
   name: string;
@@ -50,6 +50,7 @@ export type ModalField = {
   required?: boolean;
   disabled?: boolean;
   autoComplete?: string; 
+  uploadType?: "audio" | "video" | "document",
   render?: (value: string | boolean, onChange: (updatedValue: string | boolean) => void) => React.ReactNode; // custom field ke liye
 };
 

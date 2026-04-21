@@ -241,12 +241,17 @@ export default function AdminLeads() {
     });
 
     const { mutate: convertLeadApi } = useMutation({
-        mutationFn: (id: string) => convertLead(id),
+        mutationFn: ({ id, data }: { id: string; data: any }) =>
+            convertLead(id, data),
+
         onSuccess: () => {
             toast.success("Lead converted! 🎉");
             queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
         },
-        onError: () => toast.error("Failed to convert!"),
+
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.message || "Failed to convert!");
+        },
     });
 
     const { mutate: markLost, isPending: isMarkingLost } = useMutation({
@@ -363,7 +368,15 @@ export default function AdminLeads() {
                     {
                         icon: <UserCheck size={14} />,
                         label: "Convert",
-                        onClick: (lead) => convertLeadApi(lead._id),
+                        onClick: (lead) =>
+                            convertLeadApi({
+                                id: lead._id,
+                                data: {
+                                    program_id: lead.program_id,
+                                    batch_id: lead.batch_id,
+                                    payment_plan_id: lead.payment_plan_id,
+                                },
+                            }),
                         className: "hover:bg-teal-50 hover:text-teal-600",
                         hidden: (lead) => lead.status === "converted" || lead.status === "lost",
                     },

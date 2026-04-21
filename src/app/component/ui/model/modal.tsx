@@ -7,6 +7,7 @@ import Checkbox from "@/app/component/ui/checkbox";
 import Button from "@/app/component/ui/button";
 import { useState } from "react";
 import { ModalField, ModalProps } from "@/types/ui";
+import UploadInput from "../upload-input";
 
 export default function Modal({
   isOpen,
@@ -135,6 +136,35 @@ export default function Modal({
             checked={form[field.name] as boolean}
             onChange={(e) => setForm({ ...form, [field.name]: e.target.checked })}
             disabled={field.disabled}
+          />
+        );
+      case "uploadInput":
+        return (
+          <UploadInput
+            key={field.name}
+            label={field.label}
+            value={form[field.name] as string}
+            type={form["content_type"] as any}
+
+            // ✅ only URL
+            onChange={(url) =>
+              setForm({
+                ...form,
+                content_url: url,
+              })
+            }
+
+            // ✅ duration yahan handle karo
+            onUploadComplete={(data) => {
+              setForm((prev) => ({
+                ...prev,
+                content_url: data.url,
+
+                ...(data.duration && {
+                  duration_minutes: Math.ceil(data.duration).toString(),
+                }),
+              }));
+            }}
           />
         );
       case "custom":

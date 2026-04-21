@@ -4,7 +4,7 @@ import { LoginData, RegisterData, UpdateUserData } from "@/types/apiType";
  
 const API = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
-  withCredentials: true, // Set to true to include cookies in requests
+  // withCredentials: true, // Set to true to include cookies in requests
 });
  
 // Token auto-attach
@@ -96,7 +96,7 @@ export const createLead = (data: any) => API.post("/api/v1/leads", data);
 export const updateLead = (id: string, data: any) => API.put(`/api/v1/leads/${id}`, data);
 export const deleteLead = (id: string) => API.delete(`/api/v1/leads/${id}`);
 export const assignLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/assign`, data);
-export const convertLead = (id: string) => API.post(`/api/v1/leads/${id}/convert`);
+export const convertLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/convert`, data);
 export const markLostLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/mark-lost`, data);
 export const getActivitiesLead = (id: string) => API.get(`/api/v1/leads/${id}/activities`);
 export const addActivityLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/activities`, data);
@@ -148,6 +148,63 @@ export const adminDeleteBlog = (slug: string) => API.delete(`/api/v1/blogs/${slu
 export const adminPublishBlog = (slug: string) => API.post(`/api/v1/blogs/${slug}/publish`);
 export const adminGetBlogBySlug = (slug: string) =>
   API.get(`/api/v1/blogs/admin/${slug}`);
+
+// ─── Finance — Invoices ───────────────────────────────────────
+export const getAllInvoices = (params?: any) => API.get("/api/v1/finance/invoices", { params });
+export const getInvoiceById = (id: string) => API.get(`/api/v1/finance/invoices/${id}`);
+export const createInvoice = (data: any) => API.post("/api/v1/finance/invoices", data);
+export const updateInvoice = (id: string, data: any) => API.patch(`/api/v1/finance/invoices/${id}`, data);
+export const markInvoicePaid = (id: string) => API.patch(`/api/v1/finance/invoices/${id}/mark-paid`);
+export const getPendingInvoices = () => API.get("/api/v1/finance/invoices/pending");
+export const getOverdueInvoices = () => API.get("/api/v1/finance/invoices/overdue");
+export const getUpcomingDues = (days?: number) => API.get("/api/v1/finance/invoices/upcoming-dues", { params: { days: days || 30 } });
+ 
+// ─── Finance — Payments ──────────────────────────────────────
+export const getAllPayments = (params?: any) => API.get("/api/v1/finance/payments", { params });
+export const getPaymentById = (id: string) => API.get(`/api/v1/finance/payments/${id}`);
+export const addPayment = (data: any) => API.post("/api/v1/finance/payments", data);
+export const updatePayment = (id: string, data: any) => API.patch(`/api/v1/finance/payments/${id}`, data);
+export const approvePayment = (id: string) => API.patch(`/api/v1/finance/payments/${id}/approve`);
+export const rejectPayment = (id: string, data: { reason: string }) => API.patch(`/api/v1/finance/payments/${id}/reject`, data);
+ 
+// ─── Finance — Reports ───────────────────────────────────────
+export const getRevenueReport = () => API.get("/api/v1/finance/reports/revenue");
+export const getMonthlyCollections = (year?: number) => API.get("/api/v1/finance/reports/monthly", { params: { year: year || new Date().getFullYear() } });
+export const getPendingReport = () => API.get("/api/v1/finance/reports/pending");
+ 
+// ─── Finance — Extension ─────────────────────────────────────
+export const addFinanceExtension = (data: { enrollmentId: string; days: number; reason: string }) => API.post("/api/v1/finance/extension", data);
+ 
+// ─── Enrollments ─────────────────────────────────────────────
+// export const getAllEnrollments = (params?: any) => API.get("/api/v1/enrollments", { params });
+// export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
+// export const getEnrollmentById = (id: string) => API.get(`/api/v1/enrollments/${id}`);
+// export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", data);
+// export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`, data);
+// export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
+// export const graduateEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/graduate`);
+// export const suspendEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/suspend`);
+// export const reactivateEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/reactivate`);
+export const getAllEnrollments = (params?: any) => API.get("/api/v1/enrollments", { params });
+export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
+export const getEnrollmentById = (id: string) => API.get(`/api/v1/enrollments/${id}`);
+export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", data);
+ 
+export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`);         // PUT ✅
+export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
+ 
+export const graduateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/graduate`);        // POST ✅
+export const suspendEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/suspend`);          // POST ✅
+export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/reactivate`);   // POST ✅
+
+ 
+// ─── Access Control ───────────────────────────────────────────
+export const grantAccess = (data: { enrollmentId: string; days: number }) => API.post("/api/v1/access/grant", data);
+export const checkAccess = (enrollmentId: string) => API.get(`/api/v1/access/check/${enrollmentId}`);
+ 
+// ─── Audit Logs ───────────────────────────────────────────────
+export const getAllAuditLogs = (params?: any) => API.get("/api/v1/audit-logs", { params });
+export const getAuditLogById = (id: string) => API.get(`/api/v1/audit-logs/${id}`);
 
 
 export default API;

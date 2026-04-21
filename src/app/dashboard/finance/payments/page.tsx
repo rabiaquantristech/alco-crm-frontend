@@ -1,0 +1,226 @@
+"use client";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAllPayments, addPayment, updatePayment, approvePayment, rejectPayment } from "@/utils/api";
+import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
+import DynamicTable from "@/app/component/dashboard/dynamic-table";
+import Modal from "@/app/component/ui/model/modal";
+import Popup from "@/app/component/ui/popup/popup";
+import { ModalField } from "@/types/ui";
+import toast from "react-hot-toast";
+import { Receipt, CheckCircle, XCircle, Pencil } from "lucide-react";
+
+const statusColor = (status: string) => {
+  const map: Record<string, string> = {
+    approved: "bg-green-100 text-green-700",
+    pending: "bg-yellow-100 text-yellow-700",
+    rejected: "bg-rose-100 text-rose-700",
+  };
+  return map[status] || "bg-gray-100 text-gray-600";
+};
+
+const methodColor = (method: string) => {
+  const map: Record<string, string> = {
+    cash: "bg-teal-100 text-teal-700",
+    bank: "bg-indigo-100 text-indigo-700",
+    cheque: "bg-purple-100 text-purple-700",
+    manual: "bg-gray-100 text-gray-600",
+  };
+  return map[method] || "bg-gray-100 text-gray-600";
+};
+
+const addPaymentFields: ModalField[] = [
+  { name: "invoice", label: "Invoice ID", type: "input", inputType: "text", placeholder: "MongoDB ObjectId" },
+  { name: "enrollment", label: "Enrollment ID", type: "input", inputType: "text", placeholder: "MongoDB ObjectId" },
+  { name: "user", label: "User ID", type: "input", inputType: "text", placeholder: "MongoDB ObjectId" },
+  { name: "amount", label: "Amount (Rs)", type: "input", inputType: "number", placeholder: "25000" },
+  {
+    name: "method", label: "Payment Method", type: "select",
+    options: [
+      { label: "Cash", value: "cash" },
+      { label: "Bank Transfer", value: "bank" },
+      { label: "Cheque", value: "cheque" },
+      { label: "Manual", value: "manual" },
+    ],
+  },
+  { name: "referenceNumber", label: "Reference No. (for bank/cheque)", type: "input", inputType: "text", placeholder: "TXN-2025-001" },
+  { name: "notes", label: "Notes", type: "textarea", placeholder: "Any notes..." },
+];
+
+const rejectFields: ModalField[] = [
+  { name: "reason", label: "Rejection Reason", type: "textarea", placeholder: "Invalid reference number..." },
+];
+
+const editPaymentFields: ModalField[] = [
+  { name: "amount", label: "Amount (Rs)", type: "input", inputType: "number" },
+  {
+    name: "method", label: "Payment Method", type: "select",
+    options: [
+      { label: "Cash", value: "cash" },
+      { label: "Bank Transfer", value: "bank" },
+      { label: "Cheque", value: "cheque" },
+      { label: "Manual", value: "manual" },
+    ],
+  },
+  { name: "referenceNumber", label: "Reference No.", type: "input", inputType: "text" },
+  { name: "notes", label: "Notes", type: "textarea" },
+];
+
+export default function PaymentsPage() {
+  const queryClient = useQueryClient();
+  const [filters, setFilters] = useState({ status: "", method: "", page: "1", limit: "10" });
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<any>(null);
+  const [approvingPayment, setApprovingPayment] = useState<any>(null);
+  const [rejectingPayment, setRejectingPayment] = useState<any>(null);
+
+  const filterFields: FilterField[] = [
+    {
+      type: "select", name: "status",
+      options: [
+        { label: "Pending", value: "pending" },
+        { label: "Approved", value: "approved" },
+        { label: "Rejected", value: "rejected" },
+      ],
+    },
+    {
+      type: "select", name: "method",
+      options: [
+        { label: "Cash", value: "cash" },
+        { label: "Bank", value: "bank" },
+        { label: "Cheque", value: "cheque" },
+        { label: "Manual", value: "manual" },
+      ],
+    },
+  ];
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["payments", filters],
+    queryFn: () => getAllPayments({ ...filters, page: parseInt(filters.page), limit: parseInt(filters.limit) }).then((r) => r.data),
+  });
+
+  const { mutate: addPay, isPending: isAdding } = useMutation({
+    mutationFn: addPayment,
+    onSuccess: () => { toast.success("Payment added! ✅"); setIsAddOpen(false); queryClient.invalidateQueries({ queryKey: ["payments"] }); },
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+  });
+
+  const { mutate: editPay, isPending: isUpdating } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => updatePayment(id, data),
+    onSuccess: () => { toast.success("Payment updated! ✅"); setEditingPayment(null); queryClient.invalidateQueries({ queryKey: ["payments"] }); },
+    onError: () => toast.error("Failed!"),
+  });
+
+  const { mutate: approvePay, isPending: isApproving } = useMutation({
+    mutationFn: (id: string) => approvePayment(id),
+    onSuccess: () => { toast.success("Payment approved! ✅"); setApprovingPayment(null); queryClient.invalidateQueries({ queryKey: ["payments"] }); },
+    onError: () => toast.error("Failed!"),
+  });
+
+  const { mutate: rejectPay, isPending: isRejecting } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => rejectPayment(id, data),
+    onSuccess: () => { toast.success("Payment rejected!"); setRejectingPayment(null); queryClient.invalidateQueries({ queryKey: ["payments"] }); },
+    onError: () => toast.error("Failed!"),
+  });
+
+  return (
+    <>
+      <PageHeader
+        title="Payments"
+        subtitle="Manage, approve & reject payments"
+        titleIcon={<Receipt size={24} />}
+        totalCount={data?.meta?.total ?? 0}
+        onAdd={() => setIsAddOpen(true)}
+        filters={filters}
+        setFilters={setFilters}
+        filterFields={filterFields}
+      />
+
+      <DynamicTable
+        data={data?.data || []}
+        isLoading={isLoading}
+        isError={isError}
+        columns={[
+          { key: "user", label: "Student", render: (p) => <span className="font-medium text-gray-800">{p.user?.name || "—"}</span> },
+          { key: "amount", label: "Amount", render: (p) => <span className="font-bold text-gray-800">Rs {(p.amount || 0).toLocaleString()}</span> },
+          {
+            key: "method", label: "Method",
+            render: (p) => <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${methodColor(p.method)}`}>{p.method}</span>,
+          },
+          { key: "referenceNumber", label: "Reference", render: (p) => <span className="text-gray-500 text-sm">{p.referenceNumber || "—"}</span> },
+          {
+            key: "status", label: "Status",
+            render: (p) => <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${statusColor(p.status)}`}>{p.status}</span>,
+          },
+          { key: "receivedBy", label: "Received By", render: (p) => <span className="text-gray-500 text-sm">{p.receivedBy?.name || "—"}</span> },
+          { key: "createdAt", label: "Date", render: (p) => <span className="text-gray-400 text-sm">{new Date(p.createdAt).toLocaleDateString()}</span> },
+        ]}
+        actions={[
+          {
+            icon: <CheckCircle size={14} />, label: "Approve",
+            onClick: (p) => setApprovingPayment(p),
+            className: "hover:bg-green-50 hover:text-green-600",
+            hidden: (p) => p.status !== "pending",
+          },
+          {
+            icon: <XCircle size={14} />, label: "Reject",
+            onClick: (p) => setRejectingPayment(p),
+            className: "hover:bg-rose-50 hover:text-rose-500",
+            hidden: (p) => p.status !== "pending",
+          },
+          {
+            icon: <Pencil size={14} />, label: "Edit",
+            onClick: (p) => setEditingPayment(p),
+            className: "hover:bg-yellow-50 hover:text-yellow-600",
+          },
+        ]}
+      />
+
+      {/* Add Payment */}
+      <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Add Payment" fields={addPaymentFields} onSubmit={addPay} isLoading={isAdding} mode="add" />
+
+      {/* Edit Payment */}
+      {editingPayment && (
+        <Modal
+          isOpen={!!editingPayment}
+          onClose={() => setEditingPayment(null)}
+          title="Edit Payment"
+          fields={editPaymentFields}
+          initialValues={{ amount: editingPayment.amount, method: editingPayment.method, referenceNumber: editingPayment.referenceNumber || "", notes: editingPayment.notes || "" }}
+          onSubmit={(data) => editPay({ id: editingPayment._id, data })}
+          isLoading={isUpdating}
+          mode="edit"
+        />
+      )}
+
+      {/* Approve Popup */}
+      {approvingPayment && (
+        <Popup
+          isOpen={!!approvingPayment}
+          onClose={() => setApprovingPayment(null)}
+          onConfirm={() => approvePay(approvingPayment._id)}
+          variant="info"
+          title="Approve Payment"
+          description={<>Approve payment of <span className="font-bold text-green-600">Rs {approvingPayment.amount?.toLocaleString()}</span> by <span className="font-bold">{approvingPayment.user?.name}</span>?</>}
+          confirmText="Yes, Approve"
+          isLoading={isApproving}
+          loadingText="Approving..."
+        />
+      )}
+
+      {/* Reject Modal */}
+      {rejectingPayment && (
+        <Modal
+          isOpen={!!rejectingPayment}
+          onClose={() => setRejectingPayment(null)}
+          title="Reject Payment"
+          subtitle={`Rs ${rejectingPayment.amount?.toLocaleString()} — ${rejectingPayment.user?.name}`}
+          fields={rejectFields}
+          onSubmit={(data) => rejectPay({ id: rejectingPayment._id, data })}
+          isLoading={isRejecting}
+          mode="add"
+        />
+      )}
+    </>
+  );
+}
