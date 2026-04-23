@@ -19,6 +19,7 @@ import {
   Wallet,
   Globe,
   Monitor,
+  FileVolume
 } from "lucide-react";
 import Image from "next/image";
 import MiniLogo from "@/assets/mini-logo-white.webp";
@@ -44,7 +45,7 @@ interface MenuSection {
 const menuSections: MenuSection[] = [
   {
     // title: "CRM",
-    roles: ["super_admin", "admin", "sales_manager", "sales_rep"],
+    roles: ["super_admin", "admin", "sales_manager", "sales_rep", "user"],
     mode: "crm",
     items: [
       {
@@ -66,16 +67,28 @@ const menuSections: MenuSection[] = [
         roles: ["super_admin", "admin"],
       },
       {
+        label: "Courses",
+        href: "/dashboard/courses",
+        icon: FileVolume,
+        roles: ["super_admin", "admin", "user"],
+      },
+      {
         label: "Audit Logs",
         href: "/dashboard/audit-logs",
         icon: ScrollText,
         roles: ["super_admin", "admin"],
       },
       {
+        label: "Payments",
+        href: "/dashboard/payments",
+        icon: Receipt,
+        roles: ["user"],
+      },
+      {
         label: "Settings",
         href: "/dashboard/settings",
         icon: Settings,
-        roles: ["super_admin", "admin"],
+        roles: ["super_admin", "admin", "user"],
       },
     ],
   },

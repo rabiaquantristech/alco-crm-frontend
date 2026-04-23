@@ -1,12 +1,12 @@
 // ✅ api.ts — poora updated file
 import axios from "axios";
 import { LoginData, RegisterData, UpdateUserData } from "@/types/apiType";
- 
+
 const API = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   // withCredentials: true, // Set to true to include cookies in requests
 });
- 
+
 // Token auto-attach
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -15,14 +15,14 @@ API.interceptors.request.use((config) => {
   }
   return config;
 });
- 
+
 // Handle 401 response and refresh token
 let isRefreshing = false;
 API.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
- 
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         localStorage.removeItem("token");
@@ -31,22 +31,22 @@ API.interceptors.response.use(
         window.location.href = "/login";
         return Promise.reject(error);
       }
- 
+
       originalRequest._retry = true;
       isRefreshing = true;
- 
+
       try {
         const refresh_token = localStorage.getItem("refresh_token");
         if (!refresh_token) throw new Error("No refresh token");
- 
+
         const res = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
           { refresh_token }
         );
- 
+
         const newAccessToken = res.data.data.access_token;
         const newRefreshToken = res.data.data.refresh_token;
- 
+
         localStorage.setItem("token", newAccessToken);
         localStorage.setItem("refresh_token", newRefreshToken);
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -61,13 +61,20 @@ API.interceptors.response.use(
         return Promise.reject(refreshError);
       }
     }
- 
+
     return Promise.reject(error);
   }
 );
- 
+
 // Define your API functions here, ensuring proper types
-export const loginUser = (data: LoginData) => API.post("/api/auth/login", data);
+// export const loginUser = (data: LoginData) => API.post("/api/auth/login", data);
+// loginUser replace karo
+export const loginUser = (data: { identifier: string; password?: string }) =>
+  API.post("/api/auth/login", data);
+
+// yeh naya add karo
+export const completeAccountSetup = (data: { email: string; password: string }) =>
+  API.post("/api/auth/complete-setup", data);
 export const registerUser = (data: RegisterData) => API.post("/api/auth/register", data);
 export const forgotPassword = (data: { email: string }) => API.post("/api/auth/forgot-password", data);
 export const resetPassword = (data: { email: string; otp: string; newPassword: string }) => API.post("/api/auth/reset-password", data);
@@ -111,6 +118,8 @@ export const adminUpdateProgram = (id: string, data: any) => API.put(`/api/v1/pr
 export const adminDeleteProgram = (id: string) => API.delete(`/api/v1/programs/${id}`);
 export const adminDuplicateProgram = (id: string) => API.post(`/api/v1/programs/${id}/duplicate`);
 export const adminGetProgramById = (id: string) => API.get(`/api/v1/programs/${id}`);
+export const getNamesPrograms = () =>
+  API.get("/api/v1/programs/name").then((r) => r.data.data);
 
 // Course APIs
 export const adminGetCourses = (programId: string) => API.get(`/api/v1/programs/${programId}/courses`);
@@ -142,7 +151,7 @@ export const adminDeleteBatch = (id: string) => API.delete(`/api/v1/programs/bat
 export const adminGetBlogs = (params?: any) => API.get("/api/v1/blogs", { params });
 export const adminCreateBlog = (data: any) => API.post("/api/v1/blogs", data);
 // export const adminUpdateBlog = (id: string, data: any) => API.put(`/api/v1/blogs/${id}`, data);
-export const adminUpdateBlog = (slugOrId: string, data: any) => 
+export const adminUpdateBlog = (slugOrId: string, data: any) =>
   API.put(`/api/v1/blogs/${slugOrId}`, data);
 export const adminDeleteBlog = (slug: string) => API.delete(`/api/v1/blogs/${slug}`);
 export const adminPublishBlog = (slug: string) => API.post(`/api/v1/blogs/${slug}/publish`);
@@ -155,10 +164,11 @@ export const getInvoiceById = (id: string) => API.get(`/api/v1/finance/invoices/
 export const createInvoice = (data: any) => API.post("/api/v1/finance/invoices", data);
 export const updateInvoice = (id: string, data: any) => API.patch(`/api/v1/finance/invoices/${id}`, data);
 export const markInvoicePaid = (id: string) => API.patch(`/api/v1/finance/invoices/${id}/mark-paid`);
+export const getMyInvoices = () => API.get("/api/v1/finance/invoices/my");
 export const getPendingInvoices = () => API.get("/api/v1/finance/invoices/pending");
 export const getOverdueInvoices = () => API.get("/api/v1/finance/invoices/overdue");
 export const getUpcomingDues = (days?: number) => API.get("/api/v1/finance/invoices/upcoming-dues", { params: { days: days || 30 } });
- 
+
 // ─── Finance — Payments ──────────────────────────────────────
 export const getAllPayments = (params?: any) => API.get("/api/v1/finance/payments", { params });
 export const getPaymentById = (id: string) => API.get(`/api/v1/finance/payments/${id}`);
@@ -166,15 +176,15 @@ export const addPayment = (data: any) => API.post("/api/v1/finance/payments", da
 export const updatePayment = (id: string, data: any) => API.patch(`/api/v1/finance/payments/${id}`, data);
 export const approvePayment = (id: string) => API.patch(`/api/v1/finance/payments/${id}/approve`);
 export const rejectPayment = (id: string, data: { reason: string }) => API.patch(`/api/v1/finance/payments/${id}/reject`, data);
- 
+
 // ─── Finance — Reports ───────────────────────────────────────
 export const getRevenueReport = () => API.get("/api/v1/finance/reports/revenue");
 export const getMonthlyCollections = (year?: number) => API.get("/api/v1/finance/reports/monthly", { params: { year: year || new Date().getFullYear() } });
 export const getPendingReport = () => API.get("/api/v1/finance/reports/pending");
- 
+
 // ─── Finance — Extension ─────────────────────────────────────
 export const addFinanceExtension = (data: { enrollmentId: string; days: number; reason: string }) => API.post("/api/v1/finance/extension", data);
- 
+
 // ─── Enrollments ─────────────────────────────────────────────
 // export const getAllEnrollments = (params?: any) => API.get("/api/v1/enrollments", { params });
 // export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
@@ -189,22 +199,95 @@ export const getAllEnrollments = (params?: any) => API.get("/api/v1/enrollments"
 export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
 export const getEnrollmentById = (id: string) => API.get(`/api/v1/enrollments/${id}`);
 export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", data);
- 
+
 export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`);         // PUT ✅
 export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
- 
+
 export const graduateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/graduate`);        // POST ✅
 export const suspendEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/suspend`);          // POST ✅
 export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/reactivate`);   // POST ✅
 
- 
+
 // ─── Access Control ───────────────────────────────────────────
 export const grantAccess = (data: { enrollmentId: string; days: number }) => API.post("/api/v1/access/grant", data);
 export const checkAccess = (enrollmentId: string) => API.get(`/api/v1/access/check/${enrollmentId}`);
- 
+
 // ─── Audit Logs ───────────────────────────────────────────────
 export const getAllAuditLogs = (params?: any) => API.get("/api/v1/audit-logs", { params });
 export const getAuditLogById = (id: string) => API.get(`/api/v1/audit-logs/${id}`);
+
+// ─── LMS — Student ───────────────────────────────────────────
+export const getLearningDashboard = (enrollmentId: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}`);
+
+export const getCourseContent = (enrollmentId: string, courseId: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/courses/${courseId}`);
+
+export const getLessonContent = (enrollmentId: string, lessonId: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/lessons/${lessonId}`);
+
+export const updateLessonProgress = (enrollmentId: string, lessonId: string, data: { progress_percentage: number; last_position_seconds?: number }) =>
+  API.post(`/api/v1/learn/${enrollmentId}/lessons/${lessonId}/progress`, data);
+
+export const getLessonComments = (enrollmentId: string, lessonId: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/lessons/${lessonId}/comments`);
+
+export const addLessonComment = (enrollmentId: string, lessonId: string, data: any) =>
+  API.post(`/api/v1/learn/${enrollmentId}/lessons/${lessonId}/comments`, data);
+
+export const completeLesson = (enrollmentId: string, lessonId: string) =>
+  API.post(`/api/v1/learn/${enrollmentId}/lessons/${lessonId}/complete`);
+
+export const getAssignments = (enrollmentId: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/assignments`);
+
+export const getAssignmentById = (enrollmentId: string, id: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/assignments/${id}`);
+
+export const submitAssignment = (enrollmentId: string, id: string, data: any) =>
+  API.post(`/api/v1/learn/${enrollmentId}/assignments/${id}/submit`, data);
+
+export const getMySubmissions = (enrollmentId: string, id: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/assignments/${id}/submissions`);
+
+export const getLiveSessions = (enrollmentId: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/live-sessions`);
+
+export const getLiveSessionById = (enrollmentId: string, id: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/live-sessions/${id}`);
+
+export const registerForSession = (enrollmentId: string, id: string) =>
+  API.post(`/api/v1/learn/${enrollmentId}/live-sessions/${id}/register`);
+
+export const getLmsResources = (enrollmentId: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/resources`);
+
+export const getResourceDownload = (enrollmentId: string, id: string) =>
+  API.get(`/api/v1/learn/${enrollmentId}/resources/${id}/download`);
+
+// ─── LMS — Instructor (Admin) ─────────────────────────────────
+export const instructorGetCourses = () => API.get("/admin/v1/instructor/courses");
+export const instructorGetSessions = () => API.get("/admin/v1/instructor/sessions");
+export const instructorGetAssignments = () => API.get("/admin/v1/instructor/assignments");
+export const instructorGetSubmissions = (id: string) => API.get(`/admin/v1/instructor/assignments/${id}/submissions`);
+export const gradeSubmission = (id: string, data: { points_earned: number; feedback?: string; status?: string }) =>
+  API.put(`/admin/v1/instructor/submissions/${id}/grade`, data);
+
+// ─── Admin LMS Content ────────────────────────────────────────
+export const adminGetLmsSessions = (params?: any) => API.get("/admin/v1/lms/live-sessions", { params });
+export const adminCreateLmsSession = (data: any) => API.post("/admin/v1/lms/live-sessions", data);
+export const adminUpdateLmsSession = (id: string, data: any) => API.put(`/admin/v1/lms/live-sessions/${id}`, data);
+export const adminDeleteLmsSession = (id: string) => API.delete(`/admin/v1/lms/live-sessions/${id}`);
+
+export const adminGetLmsAssignments = (params?: any) => API.get("/admin/v1/lms/assignments", { params });
+export const adminCreateLmsAssignment = (data: any) => API.post("/admin/v1/lms/assignments", data);
+export const adminUpdateLmsAssignment = (id: string, data: any) => API.put(`/admin/v1/lms/assignments/${id}`, data);
+export const adminDeleteLmsAssignment = (id: string) => API.delete(`/admin/v1/lms/assignments/${id}`);
+
+export const adminGetLmsResources = (params?: any) => API.get("/admin/v1/lms/resources", { params });
+export const adminCreateLmsResource = (data: any) => API.post("/admin/v1/lms/resources", data);
+export const adminUpdateLmsResource = (id: string, data: any) => API.put(`/admin/v1/lms/resources/${id}`, data);
+export const adminDeleteLmsResource = (id: string) => API.delete(`/admin/v1/lms/resources/${id}`);
 
 
 export default API;

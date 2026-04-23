@@ -144,10 +144,13 @@ export default function LessonsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-800 text-sm">{lesson.title}</h3>
+                {lesson.description && (
+                  <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{lesson.description}</p>
+                )}
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-gray-400 capitalize">{lesson.content_type?.replace("_", " ")}</span>
+                  <span className="text-xs text-gray-500 capitalize">{lesson.content_type?.replace("_", " ")}</span>
                   {lesson.duration_minutes && (
-                    <span className="text-xs text-gray-400">{lesson.duration_minutes} mins</span>
+                    <span className="text-xs text-gray-500">{lesson.duration_minutes} mins</span>
                   )}
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${lesson.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-yellow-100 text-yellow-700"}`}>
                     {lesson.status}

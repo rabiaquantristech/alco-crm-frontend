@@ -18,46 +18,22 @@ import { FcGoogle } from "react-icons/fc";
 import { FaLinkedin } from "react-icons/fa";
 import Modal from "../component/ui/model/modal";
 
+// ✅ identifier — email | phone | username
 const loginSchema = z.object({
-  email: z.string().email("Valid email daalo"),
-  password: z.string().min(6, "Password kam az kam 6 characters ka hona chahiye"),
+  identifier: z.string().min(3, "Email, phone ya username daalo"),
+  password: z.string().min(1, "Password daalo").optional().or(z.literal("")),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-// Modal fields
 const forgotFields = [
-  {
-    name: "email",
-    label: "Email",
-    type: "input" as const,
-    inputType: "email",
-    placeholder: "you@example.com",
-  },
+  { name: "email", label: "Email", type: "input" as const, inputType: "email", placeholder: "you@example.com" },
 ];
 
 const resetFields = [
-  {
-    name: "otp",
-    label: "OTP Code",
-    type: "input" as const,
-    inputType: "text",
-    placeholder: "6 digit OTP daalo",
-  },
-  {
-    name: "newPassword",
-    label: "New Password",
-    type: "input" as const,
-    inputType: "password",
-    placeholder: "••••••••",
-  },
-  {
-    name: "confirmPassword",
-    label: "Confirm Password",
-    type: "input" as const,
-    inputType: "password",
-    placeholder: "••••••••",
-  },
+  { name: "otp", label: "OTP Code", type: "input" as const, inputType: "text", placeholder: "6 digit OTP daalo" },
+  { name: "newPassword", label: "New Password", type: "input" as const, inputType: "password", placeholder: "••••••••" },
+  { name: "confirmPassword", label: "Confirm Password", type: "input" as const, inputType: "password", placeholder: "••••••••" },
 ];
 
 type ModalStep = "forgot" | "reset" | null;
@@ -73,23 +49,32 @@ export default function LoginClient() {
   const emailParam = searchParams.get("email");
   const passwordParam = searchParams.get("password");
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<LoginForm>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
+  const identifierValue = watch("identifier") || "";
+
+  // ✅ old user detect — phone number ya username type kar raha hai (no @)
+  const isLikelyOldUser = identifierValue.length > 2 && !identifierValue.includes("@");
+
   const { mutate, isPending } = useMutation({
-    mutationFn: (data: LoginForm) => loginUser(data),
-    // Login onSuccess mein refresh_token save nahi ho raha
+    mutationFn: (data: LoginForm) => loginUser({ identifier: data.identifier, password: data.password }),
     onSuccess: (res) => {
+      const userData = res.data.data.user;
+
       dispatch(setCredentials({
-        user: res.data.data.user,
+        user: userData,
         token: res.data.data.access_token,
       }));
-      // ✅ Yeh line add karo
+
       localStorage.setItem("refresh_token", res.data.data.refresh_token);
       toast.success("Login successful! 🎉");
-      console.log("Login response:", res.data.data.user);
-      if (res.data.data.user.isTemporaryPassword == true) {
+
+      // ✅ old user → profile pe bhejo setup ke liye
+      if (userData.is_old_user || userData.needsAccountSetup) {
+        router.push("/dashboard/profile?setup=true");
+      } else if (userData.isTemporaryPassword) {
         router.push(`/dashboard/profile?password=${passwordParam}`);
       } else {
         router.push("/dashboard");
@@ -100,7 +85,6 @@ export default function LoginClient() {
     },
   });
 
-  // Forgot password mutation
   const { mutate: sendOtp, isPending: isSending } = useMutation({
     mutationFn: (data: Record<string, string | boolean>) =>
       forgotPassword({ email: data.email as string }),
@@ -110,24 +94,17 @@ export default function LoginClient() {
       setModalStep("reset");
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Email not Found!");
+      toast.error(error?.response?.data?.message || "Email not found!");
     },
   });
 
-  // Reset password mutation
   const { mutate: doReset, isPending: isResetting } = useMutation({
     mutationFn: (data: Record<string, string | boolean>) => {
-      if (data.newPassword !== data.confirmPassword) {
-        throw new Error("Passwords do not match");
-      }
-      return resetPassword({
-        email: otpEmail,
-        otp: data.otp as string,
-        newPassword: data.newPassword as string,
-      });
+      if (data.newPassword !== data.confirmPassword) throw new Error("Passwords do not match");
+      return resetPassword({ email: otpEmail, otp: data.otp as string, newPassword: data.newPassword as string });
     },
     onSuccess: () => {
-      toast.success("Password has been reset! 🔒 Now log in");
+      toast.success("Password reset! 🔒 Now log in");
       setModalStep(null);
     },
     onError: (error: any) => {
@@ -136,14 +113,9 @@ export default function LoginClient() {
   });
 
   useEffect(() => {
-    if (emailParam) {
-      setValue("email", emailParam);
-    }
-    if (passwordParam) {
-      setValue("password", passwordParam);
-    }
+    if (emailParam) setValue("identifier", emailParam);
+    if (passwordParam) setValue("password", passwordParam);
   }, [emailParam, passwordParam, setValue]);
-
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -160,19 +132,25 @@ export default function LoginClient() {
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Welcome back!</h1>
         <p className="text-gray-400 text-sm mb-6">Login to your account to continue</p>
 
-        {/* Login Form */}
         <form onSubmit={handleSubmit((data) => mutate(data))} className="space-y-4">
+
+          {/* ✅ identifier field — email | phone | username */}
           <InputField
-            label="Email"
-            type="email"
-            placeholder="you@example.com"
-            error={errors.email}
-            {...register("email")}
+            label="Email, Phone or Username"
+            type="text"
+            placeholder="you@example.com / 03001234567 / arslan_larik"
+            error={errors.identifier}
+            {...register("identifier")}
           />
 
+          {/* ✅ Password — old user ke liye optional hint dikhao */}
           <div>
             <InputField
-              label="Password"
+              label={
+                isLikelyOldUser
+                  ? "Password (old account? leave empty)"
+                  : "Password"
+              }
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               error={errors.password}
@@ -183,7 +161,14 @@ export default function LoginClient() {
                 </button>
               }
             />
-            {/* Forgot Password link */}
+
+            {/* ✅ Old user hint */}
+            {isLikelyOldUser && (
+              <p className="text-xs text-amber-600 mt-1">
+                Purana account? Phone number ya username se login ho sakta hai — password ki zaroorat nahi.
+              </p>
+            )}
+
             <div className="flex justify-end mt-1">
               <button
                 type="button"
@@ -230,31 +215,12 @@ export default function LoginClient() {
 
       {/* Forgot Password Modal */}
       {modalStep === "forgot" && (
-        <Modal
-          isOpen={true}
-          onClose={() => setModalStep(null)}
-          title="Forgot Password"
-          subtitle="Enter your email — we’ll send you an OTP."
-          fields={forgotFields}
-          onSubmit={(data) => sendOtp(data)}
-          isLoading={isSending}
-          step="forgot"
-        />
+        <Modal isOpen={true} onClose={() => setModalStep(null)} title="Forgot Password" subtitle="Enter your email — we'll send you an OTP." fields={forgotFields} onSubmit={(data) => sendOtp(data)} isLoading={isSending} step="forgot" />
       )}
 
       {/* Reset Password Modal */}
       {modalStep === "reset" && (
-        <Modal
-          isOpen={true}
-          onClose={() => setModalStep(null)}
-          title="Reset Password"
-          subtitle={`OTP has been sent! ${otpEmail}`}
-          fields={resetFields}
-          onSubmit={(data) => doReset(data)}
-          isLoading={isResetting}
-          step="reset"
-          onBack={() => setModalStep("forgot")}
-        />
+        <Modal isOpen={true} onClose={() => setModalStep(null)} title="Reset Password" subtitle={`OTP has been sent! ${otpEmail}`} fields={resetFields} onSubmit={(data) => doReset(data)} isLoading={isResetting} step="reset" onBack={() => setModalStep("forgot")} />
       )}
     </div>
   );
