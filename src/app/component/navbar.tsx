@@ -3,6 +3,7 @@ import { Bell, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAppSelector } from "@/store/hooks";
+import NotificationBell from "./dashboard/notification-bell";
 
 export default function Navbar() {
   const { user } = useAppSelector((state) => state.auth);
@@ -35,10 +36,11 @@ export default function Navbar() {
       {/* Right Side */}
       <div className="flex items-center gap-4">
         {/* Notification Bell */}
-        <button className="relative p-2 rounded-full hover:bg-gray-100 transition">
+        {/* <button className="relative p-2 rounded-full hover:bg-gray-100 transition">
           <Bell size={20} className="text-gray-600" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full"></span>
-        </button>
+        </button> */}
+        <NotificationBell />
 
         {/* User Avatar — Profile Link */}
         <Link href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer">

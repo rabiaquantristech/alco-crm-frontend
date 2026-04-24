@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAllLeads, createLead, updateLead,
   assignLead, convertLead, markLostLead, addActivityLead,
-  getActivitiesLead, getLeadsStats,
+  getActivitiesLead, getLeadsStats, getNamesPrograms,
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
-import { Users, Pencil, UserCheck, XCircle, Activity, UserPlus } from "lucide-react";
+import { Users, Pencil, UserCheck, XCircle, Activity, UserPlus, LayoutGrid, List } from "lucide-react";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import LeadPipeline from "@/app/component/dashboard/lead-pipeline";
@@ -17,11 +17,13 @@ import LeadsModals from "../shared/leads-modals";
 import { simpleAddLeadFields, editLeadFields } from "../shared/fields";
 import { statusColor, leadFilterFields, defaultLeadFilters } from "../shared/constants";
 import { useAppSelector } from "@/store/hooks";
+import KanbanBoard from "./kanban-board";
 
 export default function SalesManagerLeads() {
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((state) => state.auth);
 
+  const [activeView, setActiveView] = useState<"opportunities" | "list">("opportunities");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<any>(null);
   const [activityLead, setActivityLead] = useState<any>(null);
@@ -47,6 +49,13 @@ export default function SalesManagerLeads() {
     queryFn: () => getLeadsStats(authUser?._id).then((r) => r.data.data),
     enabled: !!authUser?._id,
   });
+
+  const { data: programs } = useQuery({
+    queryKey: ["program-names"],
+    queryFn: getNamesPrograms,
+  });
+
+  const programMap = Object.fromEntries((programs || []).map((p: any) => [p._id, p.name]));
 
   const pipelineData = [
     { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
@@ -100,6 +109,16 @@ export default function SalesManagerLeads() {
     onError: () => toast.error("Failed!"),
   });
 
+  // ── Actions — delete nahi hai manager ke paas ────────────────
+  const actions = {
+    onEdit: setEditingLead,
+    onAssign: setAssigningLead,
+    onActivity: setActivityLead,
+    onViewActivities: setViewActivities,
+    onConvert: (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
+    onMarkLost: setLostLead,
+  };
+
   return (
     <>
       <PageHeader
@@ -108,62 +127,82 @@ export default function SalesManagerLeads() {
         filters={filters} setFilters={setFilters} filterFields={leadFilterFields}
       />
 
-      <DynamicTable
-        data={data?.data || []} isLoading={isLoading} isError={isError}
-        columns={[
-          { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
-          { key: "email", label: "Email" },
-          { key: "phone", label: "Phone" },
-          { key: "quality", label: "Quality", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.quality)}`}>{lead.quality}</span> },
-          { key: "status", label: "Status", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>{lead.status}</span> },
-          { key: "source", label: "Source", render: (lead) => <span className="capitalize">{lead.source || "—"}</span> },
-          { key: "assigned_to", label: "Assigned To", render: (lead) => <span>{lead.assigned_to?.name || "—"}</span> },
-        ]}
-        actions={[
-          { icon: <Pencil size={14} />, label: "Edit", onClick: setEditingLead, className: "hover:bg-yellow-50 hover:text-yellow-600" },
-          { icon: <UserPlus size={14} />, label: "Assign", onClick: setAssigningLead, className: "hover:bg-blue-50 hover:text-blue-600" },
-          { icon: <Activity size={14} />, label: "Add Activity", onClick: setActivityLead, className: "hover:bg-indigo-50 hover:text-indigo-600" },
-          { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: setViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
-          { icon: <UserCheck size={14} />, label: "Convert", onClick: (lead) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }), className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
-          { icon: <XCircle size={14} />, label: "Mark Lost", onClick: setLostLead, className: "hover:bg-red-50 hover:text-red-500", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
-        ]}
-      />
-
-      <div className="grid grid-cols-3 gap-4 mt-6">
-        <div className="col-span-2"><LeadPipeline data={pipelineData} /></div>
-        <QuickStats data={quickStatsData} />
+      {/* ── View Toggle ── */}
+      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-5">
+        <button
+          onClick={() => setActiveView("opportunities")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "opportunities" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+        >
+          <LayoutGrid size={14} /> Opportunities
+        </button>
+        <button
+          onClick={() => setActiveView("list")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeView === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+        >
+          <List size={14} /> List
+        </button>
       </div>
 
+      {/* ── Kanban View ── */}
+      {activeView === "opportunities" && (
+        isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <KanbanBoard leads={data?.data || []} programMap={programMap} actions={actions} />
+        )
+      )}
+
+      {/* ── List View ── */}
+      {activeView === "list" && (
+        <>
+          <DynamicTable
+            data={data?.data || []} isLoading={isLoading} isError={isError}
+            columns={[
+              { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
+              { key: "email", label: "Email" },
+              { key: "phone", label: "Phone" },
+              { key: "quality", label: "Quality", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.quality)}`}>{lead.quality}</span> },
+              { key: "status", label: "Status", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>{lead.status}</span> },
+              { key: "source", label: "Source", render: (lead) => <span className="capitalize">{lead.source || "—"}</span> },
+              { key: "assigned_to", label: "Assigned To", render: (lead) => <span>{lead.assigned_to?.name || "—"}</span> },
+            ]}
+            actions={[
+              { icon: <Pencil size={14} />, label: "Edit", onClick: setEditingLead, className: "hover:bg-yellow-50 hover:text-yellow-600" },
+              { icon: <UserPlus size={14} />, label: "Assign", onClick: setAssigningLead, className: "hover:bg-blue-50 hover:text-blue-600" },
+              { icon: <Activity size={14} />, label: "Add Activity", onClick: setActivityLead, className: "hover:bg-indigo-50 hover:text-indigo-600" },
+              { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: setViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
+              { icon: <UserCheck size={14} />, label: "Convert", onClick: (lead) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }), className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+              { icon: <XCircle size={14} />, label: "Mark Lost", onClick: setLostLead, className: "hover:bg-red-50 hover:text-red-500", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+            ]}
+          />
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            <div className="col-span-2"><LeadPipeline data={pipelineData} /></div>
+            <QuickStats data={quickStatsData} />
+          </div>
+        </>
+      )}
+
       <LeadsModals
-        // Add
         isAddOpen={isAddOpen} onAddClose={() => setIsAddOpen(false)}
         onAddSubmit={addLead} isAdding={isAdding} addFields={simpleAddLeadFields}
-        // Edit
         editingLead={editingLead} onEditClose={() => setEditingLead(null)}
         onEditSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
         isUpdating={isUpdating} editFields={editLeadFields}
         editInitialValues={editingLead ? {
-          first_name: editingLead.first_name || "",
-          last_name: editingLead.last_name || "",
-          email: editingLead.email || "",
-          phone: editingLead.phone || "",
-          quality: editingLead.quality || "",
-          source: editingLead.source || "",
-          status: editingLead.status || "",
-          notes: editingLead.notes || "",
-          utm_source: editingLead.utm_source || "",
-          utm_campaign: editingLead.utm_campaign || "",
+          first_name: editingLead.first_name || "", last_name: editingLead.last_name || "",
+          email: editingLead.email || "", phone: editingLead.phone || "",
+          quality: editingLead.quality || "", source: editingLead.source || "",
+          status: editingLead.status || "", notes: editingLead.notes || "",
+          utm_source: editingLead.utm_source || "", utm_campaign: editingLead.utm_campaign || "",
         } : undefined}
-        // Activity
         activityLead={activityLead} onActivityClose={() => setActivityLead(null)}
         onActivitySubmit={(data) => addActivity({ id: activityLead._id, data })} isAddingActivity={isAddingActivity}
-        // View Activities
         viewActivities={viewActivities} onViewActivitiesClose={() => setViewActivities(null)}
         activitiesData={activitiesData} isLoadingActivities={isLoadingActivities}
-        // Lost
         lostLead={lostLead} onLostClose={() => setLostLead(null)}
         onLostSubmit={(data) => markLost({ id: lostLead._id, data })} isMarkingLost={isMarkingLost}
-        // Assign
         assigningLead={assigningLead} onAssignClose={() => setAssigningLead(null)}
         onAssign={(userId) => assignLeadApi({ id: assigningLead._id, data: { assigned_to: userId } })}
         isAssigning={isAssigning} currentUserRole={authUser?.role}

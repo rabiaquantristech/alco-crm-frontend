@@ -1,5 +1,6 @@
 "use client";
 import Modal from "@/app/component/ui/model/modal";
+import AddActivityModal from "../components/add-activity-modal";
 import Popup from "@/app/component/ui/popup/popup";
 import { activityFields, lostFields } from "./fields";
 import { ModalField } from "@/types/ui";
@@ -100,15 +101,22 @@ export default function LeadsModals({
 
       {/* ── Add Activity Modal ── */}
       {activityLead && (
-        <Modal
+        // <AddActivityModal
+        //   isOpen={!!activityLead}
+        //   onClose={onActivityClose}
+        //   title="Add Activity"
+        //   subtitle={`${activityLead.first_name} ${activityLead.last_name}`}
+        //   fields={activityFields}
+        //   onSubmit={onActivitySubmit}
+        //   isLoading={isAddingActivity}
+        //   mode="add"
+        // />
+        <AddActivityModal
           isOpen={!!activityLead}
           onClose={onActivityClose}
-          title="Add Activity"
-          subtitle={`${activityLead.first_name} ${activityLead.last_name}`}
-          fields={activityFields}
+          lead={activityLead}
           onSubmit={onActivitySubmit}
           isLoading={isAddingActivity}
-          mode="add"
         />
       )}
 

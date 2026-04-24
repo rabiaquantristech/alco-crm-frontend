@@ -21,10 +21,11 @@ const addUserFields: ModalField[] = [
     name: "role", label: "Role", type: "select",
     options: [
       { label: "User", value: "user" },
-      { label: "Admin", value: "admin" },
       { label: "Sales Manager", value: "sales_manager" },
       { label: "Sales Rep", value: "sales_rep" },
       { label: "Support", value: "support" },
+      {label: "Instructor", value: "instructor"},
+      { label: "Finance Manager", value: "finance_manager" },
     ]
   },
 ];
@@ -286,6 +287,8 @@ export default function AdminPage() {
                     { label: "Sales Rep", value: "sales_rep" },
                     { label: "Support", value: "support" },
                     { label: "User", value: "user" },
+                    {label: "Instructor", value: "instructor"},
+                    { label: "Finance Manager", value: "finance_manager" },
                   ],
                 },
               ],

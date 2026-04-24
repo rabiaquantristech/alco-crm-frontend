@@ -24,7 +24,11 @@ const addUserFields: ModalField[] = [
     options: [
       { label: "User", value: "user" },
       { label: "Admin", value: "admin" },
-      { label: "sales Manager", value: "sales_manager" },
+      { label: "Sales Manager", value: "sales_manager" },
+      { label: "Sales Rep", value: "sales_rep" },
+      { label: "Support", value: "support" },
+      {label: "Instructor", value: "instructor"},
+      { label: "Finance Manager", value: "finance_manager" },
     ]
   },
 ];
@@ -336,6 +340,8 @@ export default function SuperAdminDashboard() {
                     { label: "Sales Rep", value: "sales_rep" },
                     { label: "Support", value: "support" },
                     { label: "User", value: "user" },
+                    {label: "Instructor", value: "instructor"},
+                    { label: "Finance Manager", value: "finance_manager" },
                   ],
                 },
               ],

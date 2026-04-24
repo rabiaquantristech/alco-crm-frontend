@@ -5,6 +5,7 @@ import UserDashboard from "./user-dashboard";
 import SalesManagerDashboard from "./sales-manager-dashboard";
 import SuperAdminDashboard from "./super-admin-dashboard";
 import SalesRepDashboard from "./sales-rep-dashboard";
+import FinanceManagerDashboard from "./finance-manager";
 import SupportDashboard from "./support-dashboard";
 
 export default function DashboardPage() {
@@ -22,6 +23,8 @@ export default function DashboardPage() {
         return <SalesRepDashboard />;
       case "support":
         return <SupportDashboard />;
+      case "finance_manager":
+        return <FinanceManagerDashboard />;
       default:
         return <UserDashboard />;
     }

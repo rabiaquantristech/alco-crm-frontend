@@ -45,14 +45,14 @@ interface MenuSection {
 const menuSections: MenuSection[] = [
   {
     // title: "CRM",
-    roles: ["super_admin", "admin", "sales_manager", "sales_rep", "user"],
+    roles: ["super_admin", "admin", "sales_manager", "sales_rep", "user", "finance_manager"],
     mode: "crm",
     items: [
       {
         label: "Dashboard",
         href: "/dashboard",
         icon: LayoutDashboard,
-        roles: ["super_admin", "admin", "sales_manager", "sales_rep"],
+        roles: ["super_admin", "admin", "sales_manager", "sales_rep", "user", "finance_manager"],
       },
       {
         label: "Leads",
@@ -76,19 +76,19 @@ const menuSections: MenuSection[] = [
         label: "Audit Logs",
         href: "/dashboard/audit-logs",
         icon: ScrollText,
-        roles: ["super_admin", "admin"],
+        roles: ["super_admin", "admin", "finance_manager"],
       },
       {
         label: "Payments",
         href: "/dashboard/payments",
         icon: Receipt,
-        roles: ["user"],
+        roles: ["user", "finance_manager"],
       },
       {
         label: "Settings",
         href: "/dashboard/settings",
         icon: Settings,
-        roles: ["super_admin", "admin", "user"],
+        roles: ["super_admin", "admin", "user", "finance_manager"],
       },
     ],
   },

@@ -186,12 +186,7 @@ export const getPendingReport = () => API.get("/api/v1/finance/reports/pending")
 export const addFinanceExtension = (data: { enrollmentId: string; days: number; reason: string }) => API.post("/api/v1/finance/extension", data);
 
 // ─── Enrollments ─────────────────────────────────────────────
-// export const getAllEnrollments = (params?: any) => API.get("/api/v1/enrollments", { params });
-// export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
-// export const getEnrollmentById = (id: string) => API.get(`/api/v1/enrollments/${id}`);
-// export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", data);
 // export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`, data);
-// export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
 // export const graduateEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/graduate`);
 // export const suspendEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/suspend`);
 // export const reactivateEnrollment = (id: string) => API.patch(`/api/v1/enrollments/${id}/reactivate`);
@@ -200,12 +195,12 @@ export const getMyEnrollments = () => API.get("/api/v1/enrollments/my");
 export const getEnrollmentById = (id: string) => API.get(`/api/v1/enrollments/${id}`);
 export const createEnrollment = (data: any) => API.post("/api/v1/enrollments", data);
 
-export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`);         // PUT ✅
+export const updateEnrollment = (id: string, data: any) => API.put(`/api/v1/enrollments/${id}`);        
 export const deleteEnrollment = (id: string) => API.delete(`/api/v1/enrollments/${id}`);
 
-export const graduateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/graduate`);        // POST ✅
-export const suspendEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/suspend`);          // POST ✅
-export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/reactivate`);   // POST ✅
+export const graduateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/graduate`);        
+export const suspendEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/suspend`);          
+export const reactivateEnrollment = (id: string) => API.post(`/api/v1/enrollments/${id}/reactivate`);  
 
 
 // ─── Access Control ───────────────────────────────────────────
