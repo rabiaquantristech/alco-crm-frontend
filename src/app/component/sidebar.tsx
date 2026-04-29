@@ -82,7 +82,13 @@ const menuSections: MenuSection[] = [
         label: "Payments",
         href: "/dashboard/payments",
         icon: Receipt,
-        roles: ["user", "finance_manager"],
+        roles: ["finance_manager"],
+      },
+      {
+        label: "Contract",
+        href: "/dashboard/contract",
+        icon: FileText,
+        roles: ["user"],
       },
       {
         label: "Settings",
@@ -118,7 +124,7 @@ const menuSections: MenuSection[] = [
   },
   {
     title: "Finance",
-    roles: ["super_admin", "admin", "finance_manager"],
+    roles: ["super_admin", "admin", "finance_manager", "user"],
     mode: "crm",
     items: [
       {

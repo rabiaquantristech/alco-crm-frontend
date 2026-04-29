@@ -36,18 +36,20 @@ export default function AssignLeadModal({ lead, onClose, onAssign, isLoading, cu
   console.log("All users:", data?.users);
   console.log("Current user role:", currentUserRole);
   const assignableUsers = data?.users?.filter((user: any) => {
-    if (currentUserRole === "admin" ) {
-      // Admin can assign to both
-      return ["sales_manager", "sales_rep"].includes(user.role);
-    }
-
-    if (currentUserRole === "sales_manager") {
-      // Manager can only assign to reps
-      return user.role === "sales_rep";
-    }
-
-    return false;
-  });
+  if (authUser.role === "super_admin") {
+    // super_admin → admin, sales_manager, sales_rep sab dekhe
+    return ["admin", "sales_manager", "sales_rep"].includes(user.role);
+  }
+  if (authUser.role === "admin") {
+    // admin → sales_manager, sales_rep
+    return ["sales_manager", "sales_rep"].includes(user.role);
+  }
+  if (authUser.role === "sales_manager") {
+    // sales_manager → sirf sales_rep
+    return user.role === "sales_rep";
+  }
+  return false;
+});
 
   // ✅ Search filter
   const filteredUsers = assignableUsers?.filter((user: any) =>

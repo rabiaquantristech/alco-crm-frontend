@@ -59,16 +59,22 @@ export default function Modal({
 
   // ✅ Active tab ki fields aur onSubmit
   const currentTab = tabs?.find((t) => t.key === activeTab);
+
   // const activeFields = tabs ? (currentTab?.fields || []) : fields;
+  // const activeFields = tabs
+  //   ? (currentTab?.fields || [])
+  //   : fields.filter((field) => {
+  //     if (mode === "edit") {
+  //       const value = initialValues?.[field.name];
+  //       return value !== undefined && value !== null && value !== "";
+  //     }
+  //     return true; // add mode → show all fields
+  //   });
+
   const activeFields = tabs
     ? (currentTab?.fields || [])
-    : fields.filter((field) => {
-      if (mode === "edit") {
-        const value = initialValues?.[field.name];
-        return value !== undefined && value !== null && value !== "";
-      }
-      return true; // add mode → show all fields
-    });
+    : fields;
+
   const handleSubmit = () => {
     if (tabs && currentTab?.onSubmit) {
       currentTab.onSubmit(form);

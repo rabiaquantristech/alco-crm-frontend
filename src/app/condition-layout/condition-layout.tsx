@@ -32,11 +32,11 @@ export default function ConditionLayout({ children }: { children: React.ReactNod
 
 
       <ProtectedRoute>
-        <div className="flex min-h-screen bg-gray-100">
+        <div className="flex min-h-screen bg-gray-100 overflow-x-auto">
           <Sidebar />
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-w-0">
             <Navbar />
-            <main className="flex-1 p-6 relative">
+            <main className="flex-1 p-6 relative min-w-0 overflow-x-auto">
               {loading ? (
                 <div className="absolute inset-0 z-[999] bg-white flex items-center justify-center">
                   <Loader />

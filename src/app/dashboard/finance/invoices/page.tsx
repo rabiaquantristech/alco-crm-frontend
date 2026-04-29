@@ -1,15 +1,23 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getAllInvoices, createInvoice, updateInvoice, markInvoicePaid } from "@/utils/api";
+import {
+  getAllInvoices,
+  getMyInvoices,
+  createInvoice,
+  updateInvoice,
+} from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
 import Modal from "@/app/component/ui/model/modal";
-import Popup from "@/app/component/ui/popup/popup";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
-import { FileText, CheckCircle, Pencil } from "lucide-react";
+import { FileText, CheckCircle, Pencil, ListOrdered } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
+import InstallmentPaymentModal from "../component/installment-payment-modal";
+import EditInstallmentsModal from "../component/edit-installments-modal";
 
+// ── Status badge colors ──────────────────────────────────────────
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
     PAID: "bg-green-100 text-green-700",
@@ -23,6 +31,7 @@ const statusColor = (status: string) => {
   return map[status] || "bg-gray-100 text-gray-600";
 };
 
+// ── Modal Fields ─────────────────────────────────────────────────
 const createFields: ModalField[] = [
   { name: "user", label: "User ID", type: "input", inputType: "text", placeholder: "MongoDB ObjectId" },
   { name: "enrollment", label: "Enrollment ID", type: "input", inputType: "text", placeholder: "MongoDB ObjectId" },
@@ -47,124 +56,223 @@ const editFields: ModalField[] = [
 
 export default function InvoicesPage() {
   const queryClient = useQueryClient();
+  const { user: authUser } = useAppSelector((state) => state.auth);
+
+  const isStudent = authUser?.role === "user";
+  const isAdmin = ["admin", "super_admin", "finance"].includes(authUser?.role || "");
+
   const [filters, setFilters] = useState({ status: "", search: "", page: "1", limit: "10" });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<any>(null);
-  const [markPaidInvoice, setMarkPaidInvoice] = useState<any>(null);
+  const [installmentInvoice, setInstallmentInvoice] = useState<any>(null);
+  const [editInstallmentInvoice, setEditInstallmentInvoice] = useState<any>(null); // ← NEW
 
-  const filterFields: FilterField[] = [
-    { type: "input", name: "search", placeholder: "Search user, email..." },
-    {
-      type: "select", name: "status",
-      options: [
-        { label: "Pending", value: "PENDING" },
-        { label: "Partial", value: "PARTIAL" },
-        { label: "Paid", value: "PAID" },
-        { label: "Overdue", value: "OVERDUE" },
-        { label: "Extended", value: "EXTENDED" },
-        { label: "Blocked", value: "BLOCKED" },
-      ],
-    },
-  ];
+  const filterFields: FilterField[] = isAdmin
+    ? [
+      { type: "input", name: "search", placeholder: "Search student name, email..." },
+      {
+        type: "select", name: "status",
+        options: [
+          { label: "Pending", value: "PENDING" },
+          { label: "Partial", value: "PARTIAL" },
+          { label: "Paid", value: "PAID" },
+          { label: "Overdue", value: "OVERDUE" },
+          { label: "Extended", value: "EXTENDED" },
+          { label: "Blocked", value: "BLOCKED" },
+        ],
+      },
+    ]
+    : [
+      {
+        type: "select", name: "status",
+        options: [
+          { label: "Pending", value: "PENDING" },
+          { label: "Partial", value: "PARTIAL" },
+          { label: "Paid", value: "PAID" },
+          { label: "Overdue", value: "OVERDUE" },
+        ],
+      },
+    ];
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["invoices", filters],
-    queryFn: () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
+    queryKey: isStudent ? ["my-invoices"] : ["invoices", filters],
+    queryFn: isStudent
+      ? () => getMyInvoices().then((r) => r.data)
+      : () => getAllInvoices({ ...filters, page: Number(filters.page), limit: Number(filters.limit) }).then((r) => r.data),
   });
 
   const { mutate: addInvoice, isPending: isAdding } = useMutation({
     mutationFn: createInvoice,
-    onSuccess: () => { toast.success("Invoice created! ✅"); setIsAddOpen(false); queryClient.invalidateQueries({ queryKey: ["invoices"] }); },
+    onSuccess: () => {
+      toast.success("Invoice created!");
+      setIsAddOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
 
   const { mutate: editInvoice, isPending: isUpdating } = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => updateInvoice(id, data),
-    onSuccess: () => { toast.success("Invoice updated! ✅"); setEditingInvoice(null); queryClient.invalidateQueries({ queryKey: ["invoices"] }); },
+    onSuccess: () => {
+      toast.success("Invoice updated!");
+      setEditingInvoice(null);
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+    },
     onError: () => toast.error("Failed to update!"),
   });
 
-  const { mutate: markPaid, isPending: isMarkingPaid } = useMutation({
-    mutationFn: (id: string) => markInvoicePaid(id),
-    onSuccess: () => { toast.success("Invoice marked as paid! ✅"); setMarkPaidInvoice(null); queryClient.invalidateQueries({ queryKey: ["invoices"] }); },
-    onError: () => toast.error("Failed!"),
-  });
+  const invoiceList = isStudent ? (data?.data ?? data ?? []) : (data?.data ?? []);
+  const totalCount = isStudent ? invoiceList.length : (data?.meta?.total ?? 0);
 
   return (
     <>
       <PageHeader
-        title="Invoices"
-        subtitle="Manage all invoices"
+        title={isStudent ? "My Invoices" : "Invoices"}
+        subtitle={isStudent ? "Apni payment history aur pending dues dekhein" : "Manage all student invoices"}
         titleIcon={<FileText size={24} />}
-        totalCount={data?.meta?.total ?? 0}
-        onAdd={() => setIsAddOpen(true)}
+        totalCount={totalCount}
+        {...(isAdmin && { onAdd: () => setIsAddOpen(true) })}
         filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
       />
 
       <DynamicTable
-        data={data?.data || []}
+        data={invoiceList}
         isLoading={isLoading}
         isError={isError}
         columns={[
-          { key: "user", label: "Student", render: (inv) => <span className="font-medium text-gray-800">{inv.user?.name || inv.user || "—"}</span> },
-          { key: "totalAmount", label: "Total", render: (inv) => <span>Rs {(inv.totalAmount || 0).toLocaleString()}</span> },
-          { key: "paidAmount", label: "Paid", render: (inv) => <span className="text-green-600 font-medium">Rs {(inv.paidAmount || 0).toLocaleString()}</span> },
-          { key: "remainingAmount", label: "Remaining", render: (inv) => <span className="text-rose-500 font-medium">Rs {(inv.remainingAmount || 0).toLocaleString()}</span> },
+          ...(isAdmin
+            ? [{
+              key: "user", label: "Student",
+              render: (inv: any) => (
+                <div>
+                  <p className="font-medium text-sm text-gray-800">{inv.user?.name || "—"}</p>
+                  <p className="text-xs text-gray-400">{inv.user?.email || ""}</p>
+                </div>
+              ),
+            }]
+            : []),
           {
-            key: "status", label: "Status",
-            render: (inv) => (
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(inv.status)}`}>{inv.status}</span>
+            key: "program", label: "Program",
+            render: (inv: any) => (
+              <span className="text-sm text-gray-600">{inv.enrollment?.program?.name || "—"}</span>
             ),
           },
-          { key: "dueDate", label: "Due Date", render: (inv) => <span className="text-gray-500 text-sm">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "—"}</span> },
-        ]}
-        actions={[
           {
-            icon: <Pencil size={14} />, label: "Edit",
-            onClick: (inv) => setEditingInvoice(inv),
-            className: "hover:bg-yellow-50 hover:text-yellow-600",
+            key: "totalAmount", label: "Total",
+            render: (inv: any) => (
+              <span className="font-semibold text-sm text-gray-800">Rs {(inv.totalAmount || 0).toLocaleString()}</span>
+            ),
           },
           {
-            icon: <CheckCircle size={14} />, label: "Mark Paid",
-            onClick: (inv) => setMarkPaidInvoice(inv),
-            className: "hover:bg-green-50 hover:text-green-600",
-            hidden: (inv) => inv.status === "PAID",
+            key: "paidAmount", label: "Paid",
+            render: (inv: any) => (
+              <span className="text-green-600 font-medium text-sm">Rs {(inv.paidAmount || 0).toLocaleString()}</span>
+            ),
           },
+          {
+            key: "remainingAmount", label: "Remaining",
+            render: (inv: any) => (
+              <span className={`font-medium text-sm ${(inv.remainingAmount || 0) > 0 ? "text-rose-500" : "text-green-600"}`}>
+                Rs {(inv.remainingAmount || 0).toLocaleString()}
+              </span>
+            ),
+          },
+          {
+            key: "status", label: "Status",
+            render: (inv: any) => (
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(inv.status)}`}>
+                {inv.status}
+              </span>
+            ),
+          },
+          {
+            key: "dueDate", label: "Due Date",
+            render: (inv: any) => (
+              <span className="text-gray-500 text-sm">
+                {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("en-PK") : "—"}
+              </span>
+            ),
+          },
+          ...(isStudent
+            ? [{
+              key: "payments", label: "Payments Made",
+              render: (inv: any) => (
+                <span className="text-sm text-gray-600">
+                  {inv.payments?.length ? `${inv.payments.length} payment(s)` : "None yet"}
+                </span>
+              ),
+            }]
+            : []),
         ]}
+        actions={
+          isAdmin
+            ? [
+              // {
+              //   icon: <Pencil size={14} />,
+              //   label: "Edit Invoice",
+              //   onClick: (inv: any) => setEditingInvoice(inv),
+              //   className: "hover:bg-yellow-50 hover:text-yellow-600",
+              // },
+              {
+                icon: <ListOrdered size={14} />,
+                label: "Edit Installments",        // ← NEW action
+                onClick: (inv: any) => setEditInstallmentInvoice(inv),
+                className: "hover:bg-indigo-50 hover:text-indigo-600",
+              },
+              {
+                icon: <CheckCircle size={14} />,
+                label: "Pay Installments",
+                onClick: (inv: any) => setInstallmentInvoice(inv),
+                className: "hover:bg-green-50 hover:text-green-600",
+                hidden: (inv: any) => inv.status === "PAID",
+              },
+            ]
+            : []
+        }
       />
 
-      {/* Add Modal */}
-      <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} title="Create Invoice" fields={createFields} onSubmit={addInvoice} isLoading={isAdding} mode="add" />
+      {isAdmin && (
+        <>
+          <Modal
+            isOpen={isAddOpen}
+            onClose={() => setIsAddOpen(false)}
+            title="Create Invoice"
+            fields={createFields}
+            onSubmit={addInvoice}
+            isLoading={isAdding}
+            mode="add"
+          />
 
-      {/* Edit Modal */}
-      {editingInvoice && (
-        <Modal
-          isOpen={!!editingInvoice}
-          onClose={() => setEditingInvoice(null)}
-          title="Edit Invoice"
-          fields={editFields}
-          initialValues={{ dueDate: editingInvoice.dueDate?.split("T")[0] || "", status: editingInvoice.status }}
-          onSubmit={(data) => editInvoice({ id: editingInvoice._id, data })}
-          isLoading={isUpdating}
-          mode="edit"
-        />
-      )}
+          {editingInvoice && (
+            <Modal
+              isOpen={!!editingInvoice}
+              onClose={() => setEditingInvoice(null)}
+              title="Edit Invoice"
+              fields={editFields}
+              initialValues={{
+                dueDate: editingInvoice.dueDate?.split("T")[0] || "",
+                status: editingInvoice.status,
+              }}
+              onSubmit={(data) => editInvoice({ id: editingInvoice._id, data })}
+              isLoading={isUpdating}
+              mode="edit"
+            />
+          )}
 
-      {/* Mark Paid Popup */}
-      {markPaidInvoice && (
-        <Popup
-          isOpen={!!markPaidInvoice}
-          onClose={() => setMarkPaidInvoice(null)}
-          onConfirm={() => markPaid(markPaidInvoice._id)}
-          variant="info"
-          title="Mark Invoice as Paid"
-          description={<>Mark invoice of <span className="font-bold text-green-600">Rs {markPaidInvoice.totalAmount?.toLocaleString()}</span> as fully paid?</>}
-          confirmText="Yes, Mark Paid"
-          isLoading={isMarkingPaid}
-          loadingText="Processing..."
-        />
+          {/* Pay installments modal */}
+          <InstallmentPaymentModal
+            invoice={installmentInvoice}
+            onClose={() => setInstallmentInvoice(null)}
+          />
+
+          {/* Edit/Add installments modal — NEW */}
+          <EditInstallmentsModal
+            invoice={editInstallmentInvoice}
+            onClose={() => setEditInstallmentInvoice(null)}
+          />
+        </>
       )}
     </>
   );

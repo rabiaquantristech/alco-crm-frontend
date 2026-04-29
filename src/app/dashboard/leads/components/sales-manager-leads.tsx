@@ -5,6 +5,7 @@ import {
   getAllLeads, createLead, updateLead,
   assignLead, convertLead, markLostLead, addActivityLead,
   getActivitiesLead, getLeadsStats, getNamesPrograms,
+  markLeadInterested,
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
@@ -18,6 +19,8 @@ import { simpleAddLeadFields, editLeadFields } from "../shared/fields";
 import { statusColor, leadFilterFields, defaultLeadFilters } from "../shared/constants";
 import { useAppSelector } from "@/store/hooks";
 import KanbanBoard from "./kanban-board";
+import PaymentPlanModal from "./payment-plan-modal";
+import MarkInterestedModal from "./mark-interested-modal";
 
 export default function SalesManagerLeads() {
   const queryClient = useQueryClient();
@@ -30,7 +33,9 @@ export default function SalesManagerLeads() {
   const [lostLead, setLostLead] = useState<any>(null);
   const [assigningLead, setAssigningLead] = useState<any>(null);
   const [viewActivities, setViewActivities] = useState<any>(null);
+  const [interestedLead, setInterestedLead] = useState<any>(null);
   const [filters, setFilters] = useState(defaultLeadFilters);
+  const [paymentPlanLead, setPaymentPlanLead] = useState<any>(null);
 
   // ── Queries ──────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -109,6 +114,31 @@ export default function SalesManagerLeads() {
     onError: () => toast.error("Failed!"),
   });
 
+  const { mutate: savePaymentPlan, isPending: isSavingPlan } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateLead(id, { paymentPlan: data }),
+    onSuccess: () => {
+      toast.success(
+        paymentPlanLead?.paymentPlan
+          ? "Payment plan updated!"
+          : "Payment plan saved!"
+      );
+      setPaymentPlanLead(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+    },
+  });
+
+  const { mutate: markInterested, isPending: isMarkingInterested } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      markLeadInterested(id, data),
+    onSuccess: () => {
+      toast.success("Lead marked as interested! ⭐");
+      setInterestedLead(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+  });
+
   // ── Actions — delete nahi hai manager ke paas ────────────────
   const actions = {
     onEdit: setEditingLead,
@@ -117,6 +147,8 @@ export default function SalesManagerLeads() {
     onViewActivities: setViewActivities,
     onConvert: (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
     onMarkLost: setLostLead,
+    onPaymentPlan: setPaymentPlanLead,
+    onInterested: setInterestedLead,
   };
 
   return (
@@ -207,6 +239,23 @@ export default function SalesManagerLeads() {
         onAssign={(userId) => assignLeadApi({ id: assigningLead._id, data: { assigned_to: userId } })}
         isAssigning={isAssigning} currentUserRole={authUser?.role}
       />
+
+      {paymentPlanLead && (
+        <PaymentPlanModal
+          lead={paymentPlanLead}
+          onClose={() => setPaymentPlanLead(null)}
+          onSubmit={(data) => savePaymentPlan({ id: paymentPlanLead._id, data })}
+          isSubmitting={isSavingPlan} />
+      )}
+
+      {interestedLead && (
+        <MarkInterestedModal
+          lead={interestedLead}
+          onClose={() => setInterestedLead(null)}
+          onSubmit={(data) => markInterested({ id: interestedLead._id, data })}
+          isSubmitting={isMarkingInterested}
+        />
+      )}
     </>
   );
 }

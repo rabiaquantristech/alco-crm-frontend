@@ -27,7 +27,7 @@ body {
 
 /* ── Main Scrollbar ───────────────────────────── */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -35,8 +35,8 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #9CA3AF;
-  border-radius: 25px;
+  background: #e5e7eb;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -77,6 +77,53 @@ body {
 
 .mini-scroll::-webkit-scrollbar-thumb:hover {
   background: #6B7280;
+}
+
+
+/* ── Base hidden scrollbar ── */
+.kanban-scroll,
+.kanban-mini-scroll {
+  scrollbar-width: none; /* Firefox */
+}
+
+/* ── Chrome base hidden ── */
+.kanban-scroll::-webkit-scrollbar,
+.kanban-mini-scroll::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  transition: all 0.3s ease;
+}
+
+/* ── SHOW on hover ── */
+.kanban-scroll:hover::-webkit-scrollbar,
+.kanban-mini-scroll:hover::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* ── Track ── */
+.kanban-scroll::-webkit-scrollbar-track,
+.kanban-mini-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Thumb ── */
+.kanban-scroll::-webkit-scrollbar-thumb,
+.kanban-mini-scroll::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.0);
+  border-radius: 999px;
+  transition: all 0.3s ease;
+}
+
+/* ── Thumb visible on hover ── */
+.kanban-scroll:hover::-webkit-scrollbar-thumb,
+.kanban-mini-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+.kanban-scroll:hover::-webkit-scrollbar-thumb:hover,
+.kanban-mini-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.9);
 }
 
 /* ── Slide Up Animation ───────────────────────── */

@@ -192,112 +192,342 @@
 
 "use client";
 
-// import {
-//   Users, TrendingUp, DollarSign, Award,
-// } from "lucide-react";
-
-import { BookOpen, ClipboardList, Video, TrendingUp, UserCog } from "lucide-react";
+import { BookOpen, CreditCard, DollarSign, TrendingUp, UserCog, AlertCircle, Lock } from "lucide-react";
 import { StatCarduser } from "../component/dashboard/stat-card";
 import PageHeader from "../component/dashboard/page-header";
 import { useAppSelector } from "@/store/hooks";
+import { useQuery } from "@tanstack/react-query";
+import { getMyEnrollments, getMyInvoices } from "@/utils/api";
 
+// ── Types ────────────────────────────────────────────────────────
+interface Enrollment {
+  _id: string;
+  status: string;
+  accessStatus: "ACTIVE" | "RESTRICTED";
+  program?: { name: string };
+  batch?: { name: string };
+}
 
+interface Installment {
+  label: string;
+  amount: number;
+  status: "PENDING" | "PAID";
+  dueDate: string;
+  isAdvance: boolean;
+}
 
-const stats = [
-  {
-    title: "Enrolled courses", value: "4", sub: "2 in progress · 2 not started", icon: BookOpen, iconBg: "#EEEDFE",
-    iconColor: "#534AB7",
-  },
-  {
-    title: "Assignments due", value: "3", sub: "1 overdue · next due Apr 5", icon: ClipboardList, iconBg: "#FAEEDA",
-    iconColor: "#854F0B",
-  },
-  {
-    title: "Live sessions", value: "2", sub: "Next: Apr 3 at 2:00 PM", icon: Video, iconBg: "#E1F5EE",
-    iconColor: "#0F6E56",
-  },
-  {
-    title: "Overall progress", value: "62%", sub: "70%", icon: TrendingUp,
-    iconBg: "#E6F1FB",
-    iconColor: "#185FA5",
-  },
-];
+interface Invoice {
+  _id: string;
+  invoiceNumber: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  status: "PENDING" | "PARTIAL" | "PAID" | "OVERDUE";
+  dueDate: string;
+  installments: Installment[];
+}
 
-const pipeline = [
-  { label: "New Leads", count: 45, color: "bg-gray-800" },
-  { label: "Contacted", count: 32, color: "bg-yellow-400" },
-  { label: "Qualified", count: 25, color: "bg-yellow-400" },
-  { label: "Enrolled", count: 21, color: "bg-yellow-400" },
-];
+// ── Helpers ──────────────────────────────────────────────────────
+const formatAmount = (n: number) =>
+  `Rs ${Number(n || 0).toLocaleString("en-PK")}`;
 
-const sessions = [
-  { student: "Sarah Mitchell", program: "NLP Certification", date: "Mar 3, 2025 at 2:00 PM", status: "scheduled" },
-  { student: "Michael Chen", program: "Timeline Therapy", date: "Mar 3, 2025 at 10:00 AM", status: "scheduled" },
-];
+const formatDate = (d: string) =>
+  d
+    ? new Date(d).toLocaleDateString("en-PK", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
 
-const payments = [
-  { student: "Sarah Mitchell", amount: "$2,500", date: "Feb 28, 2026", status: "paid" },
-  { student: "Emma Rodriguez", amount: "$2,500", date: "Feb 26, 2026", status: "pending" },
-];
+// ── Access Guard ─────────────────────────────────────────────────
+function RestrictedCard() {
+  return (
+    <div className="col-span-4 flex flex-col items-center justify-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
+      <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+        <Lock size={22} className="text-amber-600" />
+      </div>
+      <p className="font-semibold text-amber-800 text-base">Enrollment Restricted</p>
+      <p className="text-sm text-amber-700 max-w-sm">
+        Your portal access is restricted. Please complete your advance payment to activate your enrollment and view course details.
+      </p>
+    </div>
+  );
+}
 
-const chartData = [
-  { month: "Jan", revenue: 30000 },
-  { month: "Feb", revenue: 38000 },
-  { month: "Mar", revenue: 48350 },
-];
-
+// ── Main Component ───────────────────────────────────────────────
 export default function UserDashboard() {
   const { user: authUser } = useAppSelector((state) => state.auth);
+
+  // ── Enrollments fetch ────────────────────────────────────────
+  const {
+    data: enrollData,
+    isLoading: enrollLoading,
+  } = useQuery({
+    queryKey: ["my-enrollments"],
+    queryFn: () => getMyEnrollments().then((r) => r.data),
+  });
+
+  // ── Invoices fetch ───────────────────────────────────────────
+  const {
+    data: invoiceData,
+    isLoading: invoiceLoading,
+  } = useQuery({
+    queryKey: ["my-invoices"],
+    queryFn: () => getMyInvoices().then((r) => r.data),
+  });
+
+  const isLoading = enrollLoading || invoiceLoading;
+
+  // ── Normalize data ───────────────────────────────────────────
+  const enrollments: Enrollment[] = enrollData?.data ?? enrollData ?? [];
+  const invoices: Invoice[]       = invoiceData?.data ?? invoiceData ?? [];
+
+  // ── Enrollment Logic ─────────────────────────────────────────
+  // Agar koi bhi enrollment RESTRICTED hai aur advance nahi di
+  const hasActiveEnrollment = enrollments.some(
+    (e) => e.accessStatus === "ACTIVE"
+  );
+  const hasAnyEnrollment = enrollments.length > 0;
+
+  // ── Invoice Logic ────────────────────────────────────────────
+  const latestInvoice: Invoice | undefined = invoices[0];
+
+  const pendingInstallments =
+    latestInvoice?.installments?.filter((i) => i.status === "PENDING") ?? [];
+
+  const nextDueInstallment = pendingInstallments[0];
+
+  const advanceInstallment = latestInvoice?.installments?.find(
+    (i) => i.isAdvance === true
+  );
+  const advancePaid = advanceInstallment?.status === "PAID";
+
+  // ── Active enrollments count ─────────────────────────────────
+  const activeEnrollments  = enrollments.filter((e) => e.accessStatus === "ACTIVE").length;
+  const restrictedCount    = enrollments.filter((e) => e.accessStatus === "RESTRICTED").length;
+
+  // ── Stats data build karo ────────────────────────────────────
+  const stats = [
+    {
+      title:   "Enrollments",
+      value:   isLoading ? "..." : String(enrollments.length),
+      sub:     isLoading
+        ? "Loading..."
+        : activeEnrollments > 0
+          ? `${activeEnrollments} active · ${restrictedCount} restricted`
+          : hasAnyEnrollment
+            ? `${restrictedCount} pending advance payment`
+            : "No enrollments yet",
+      icon:    BookOpen,
+      iconBg:  "#EEEDFE",
+      iconColor: "#534AB7",
+    },
+    {
+      title:   "Pending Installments",
+      value:   isLoading ? "..." : String(pendingInstallments.length),
+      sub:     isLoading
+        ? "Loading..."
+        : nextDueInstallment
+          ? `Next: ${nextDueInstallment.label} — ${formatDate(nextDueInstallment.dueDate)}`
+          : latestInvoice
+            ? "All installments paid"
+            : "No invoice found",
+      icon:    CreditCard,
+      iconBg:  "#FAEEDA",
+      iconColor: "#854F0B",
+    },
+    {
+      title:   "Paid Amount",
+      value:   isLoading
+        ? "..."
+        : formatAmount(latestInvoice?.paidAmount ?? 0),
+      sub:     isLoading
+        ? "Loading..."
+        : latestInvoice
+          ? `Outstanding: ${formatAmount(latestInvoice.remainingAmount ?? 0)}`
+          : "No invoice found",
+      icon:    DollarSign,
+      iconBg:  "#E1F5EE",
+      iconColor: "#0F6E56",
+    },
+    {
+      title:   "Invoice Status",
+      value:   isLoading
+        ? "..."
+        : latestInvoice?.status ?? "N/A",
+      sub:     isLoading
+        ? "Loading..."
+        : latestInvoice
+          ? `Total: ${formatAmount(latestInvoice.totalAmount)} · ${latestInvoice.invoiceNumber}`
+          : "No invoice found",
+      icon:    TrendingUp,
+      iconBg:  "#E6F1FB",
+      iconColor: "#185FA5",
+    },
+  ];
+
   return (
     <div className="space-y-6">
 
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────── */}
       <PageHeader
-        title="User Dashboard"
-        subtitle="Welcome back! Here's what's happening with your coaching business."
+        title={`Welcome back, ${authUser?.name?.split(" ")[0] ?? "Student"}!`}
+        subtitle="Here is your enrollment and payment summary."
         titleIcon={<UserCog size={24} />}
-      // totalCount={data?.count ?? 0}
-      // onAdd={() => setIsAddOpen(true)}
-      // onDeleteAll={() => setShowDeleteAll(true)}
       />
 
-      {/* Stats */}
-      {
-        authUser?.isPaid === false ? (
-          <div className="bg-neutral-50 border border-neutral-400 p-4 rounded text-sm text-neutral-800">
-            ⚠️ You are currently on a free trial. Upgrade to a paid plan to access all features and continue growing your coaching business without interruption.
+      {/* ── Advance Payment Warning ──────────────────────────── */}
+      {!isLoading && hasAnyEnrollment && !advancePaid && (
+        <div className="flex items-start gap-3 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+          <AlertCircle size={18} className="text-rose-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-rose-700">Advance Payment Pending</p>
+            <p className="text-xs text-rose-600 mt-0.5">
+              Your enrollment is restricted. Pay your advance of{" "}
+              <span className="font-bold">
+                {formatAmount(advanceInstallment?.amount ?? 0)}
+              </span>{" "}
+              by{" "}
+              <span className="font-bold">
+                {formatDate(advanceInstallment?.dueDate ?? "")}
+              </span>{" "}
+              to activate portal access.
+            </p>
           </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-4">
+        </div>
+      )}
+
+      {/* ── Stats Grid ──────────────────────────────────────── */}
+      <div className="grid grid-cols-4 gap-4">
+
+        {/* Agar koi enrollment nahi — restricted card dikhao */}
+        {!isLoading && !hasAnyEnrollment ? (
+          <div className="col-span-4 flex flex-col items-center justify-center gap-3 bg-neutral-50 border border-dashed border-neutral-300 rounded-2xl p-10 text-center">
+            <BookOpen size={32} className="text-neutral-400" />
+            <p className="font-semibold text-neutral-600">No Enrollments Yet</p>
+            <p className="text-sm text-neutral-400">
+              You are not enrolled in any program. Contact your sales manager.
+            </p>
+          </div>
+
+        /* Agar enrollment hai lekin RESTRICTED hai (advance nahi di) */
+        ) : !isLoading && hasAnyEnrollment && !hasActiveEnrollment ? (
+          <>
+            {/* Stats toh dikhao lekin restricted warning bhi */}
             {stats.map((stat) => (
               <StatCarduser key={stat.title} {...stat} />
             ))}
+            <RestrictedCard />
+          </>
+
+        /* Normal — active enrollment hai */
+        ) : (
+          stats.map((stat) => (
+            <StatCarduser key={stat.title} {...stat} />
+          ))
+        )}
+
+      </div>
+
+      {/* ── Installment Schedule Table (Active users ke liye) ── */}
+      {!isLoading && hasActiveEnrollment && latestInvoice?.installments?.length > 0 && (
+        <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-800 text-sm">Payment Schedule</h3>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {latestInvoice.invoiceNumber} &nbsp;·&nbsp; Total:{" "}
+                {formatAmount(latestInvoice.totalAmount)}
+              </p>
+            </div>
+            <span
+              className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                latestInvoice.status === "PAID"
+                  ? "bg-green-100 text-green-700"
+                  : latestInvoice.status === "PARTIAL"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-sky-100 text-sky-700"
+              }`}
+            >
+              {latestInvoice.status}
+            </span>
           </div>
-        )
-      }
 
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left">
+                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Due Date</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
+                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {latestInvoice.installments.map((inst, idx) => (
+                <tr
+                  key={idx}
+                  className={`border-t border-gray-50 ${
+                    inst.isAdvance ? "bg-amber-50/40" : ""
+                  }`}
+                >
+                  <td className="px-5 py-3 text-xs font-mono text-gray-400">
+                    {String(idx + 1).padStart(2, "0")}
+                  </td>
+                  <td className="px-5 py-3 font-medium text-gray-700">
+                    {inst.label}
+                    {inst.isAdvance && (
+                      <span className="ml-2 text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase">
+                        Advance
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-gray-500 font-mono text-xs">
+                    {formatDate(inst.dueDate)}
+                  </td>
+                  <td className="px-5 py-3 font-semibold text-gray-800 font-mono text-xs">
+                    {formatAmount(inst.amount)}
+                  </td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                        inst.status === "PAID"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {inst.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
-      {/* Pipeline + Quick Stats */}
-      {/* <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2">
-          <LeadPipeline data={pipeline} />
+          {/* Totals row */}
+          <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-8 text-sm">
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-0.5">Paid</p>
+              <p className="font-bold text-green-600 font-mono">
+                {formatAmount(latestInvoice.paidAmount)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-0.5">Outstanding</p>
+              <p className="font-bold text-rose-500 font-mono">
+                {formatAmount(latestInvoice.remainingAmount)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-gray-400 mb-0.5">Total</p>
+              <p className="font-bold text-gray-800 font-mono">
+                {formatAmount(latestInvoice.totalAmount)}
+              </p>
+            </div>
+          </div>
         </div>
-
-        <QuickStats
-          data={[
-            { label: "Conversion Rate", value: "32%", color: "text-green-600" },
-            { label: "Avg. Deal Size", value: "$2,780", color: "text-blue-600" },
-            { label: "Active Programs", value: "8", color: "text-indigo-600" },
-          ]}
-        />
-      </div> */}
-
-      {/* Chart */}
-      {/* <RevenueChart data={chartData} /> */}
-
-      {/* Tables */}
-      {/* <SessionsTable data={sessions} />
-      <PaymentsTable data={payments} /> */}
+      )}
 
     </div>
   );

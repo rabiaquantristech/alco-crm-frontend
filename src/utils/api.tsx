@@ -107,9 +107,11 @@ export const convertLead = (id: string, data: any) => API.post(`/api/v1/leads/${
 export const markLostLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/mark-lost`, data);
 export const getActivitiesLead = (id: string) => API.get(`/api/v1/leads/${id}/activities`);
 export const addActivityLead = (id: string, data: any) => API.post(`/api/v1/leads/${id}/activities`, data);
-export const getLeadsStats = (userId?: string) => API.get("/api/v1/leads/stats", {
-  params: userId ? { userId } : {},
-});
+export const getLeadsStats = (userId?: string) => API.get("/api/v1/leads/stats", { params: userId ? { userId } : {},});
+export const markLeadInterested = (id: string, data: any) => API.patch(`/api/v1/leads/${id}/interested`, data);
+export const updateLeadPaymentPlan = (id: string, data: any) => API.patch(`/api/v1/leads/${id}/payment-plan`, data);
+export const submitLeadContract = (id: string, data: any) => API.patch(`/api/v1/leads/${id}/contract`, data);
+export const getMyLeadContract = () => API.get(`/api/v1/leads/my-contract`);
 
 // Program APIs
 export const adminGetPrograms = (params?: any) => API.get("/api/v1/programs", { params });
@@ -164,6 +166,15 @@ export const getInvoiceById = (id: string) => API.get(`/api/v1/finance/invoices/
 export const createInvoice = (data: any) => API.post("/api/v1/finance/invoices", data);
 export const updateInvoice = (id: string, data: any) => API.patch(`/api/v1/finance/invoices/${id}`, data);
 export const markInvoicePaid = (id: string) => API.patch(`/api/v1/finance/invoices/${id}/mark-paid`);
+export const markInstallmentPaid = (invoiceId: string, installmentId: string) =>
+  API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}/mark-paid`);
+export const updateInstallment = (invoiceId: string, installmentId: string, data: any) =>
+  API.patch(`/api/v1/finance/invoices/${invoiceId}/installments/${installmentId}`, data);
+
+export const addInstallment = (invoiceId: string, data: any) =>
+  API.post(`/api/v1/finance/invoices/${invoiceId}/installments`, data);
+
+
 export const getMyInvoices = () => API.get("/api/v1/finance/invoices/my");
 export const getPendingInvoices = () => API.get("/api/v1/finance/invoices/pending");
 export const getOverdueInvoices = () => API.get("/api/v1/finance/invoices/overdue");

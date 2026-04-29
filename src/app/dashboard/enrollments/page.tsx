@@ -54,6 +54,7 @@ const editFields: ModalField[] = [
     name: "status", label: "Status", type: "select",
     options: [
       { label: "Active", value: "active" },
+      { label: "Pending", value: "pending" },
       { label: "Completed", value: "completed" },
       { label: "Suspended", value: "suspended" },
       { label: "Cancelled", value: "cancelled" },

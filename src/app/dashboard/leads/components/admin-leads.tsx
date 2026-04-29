@@ -5,6 +5,8 @@ import {
   getAllLeads, createLead, updateLead, deleteLead,
   assignLead, convertLead, markLostLead, addActivityLead,
   getActivitiesLead, getLeadsStats, getNamesPrograms,
+  markLeadInterested,
+  updateLeadPaymentPlan,
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
@@ -21,6 +23,9 @@ import { addLeadFields, editLeadFields } from "../shared/fields";
 import { statusColor, qualityColor, PIPELINE_STAGES, toStageKey, leadFilterFields, defaultLeadFilters } from "../shared/constants";
 import { ModalField } from "@/types/ui";
 import KanbanBoard from "./kanban-board";
+import PaymentPlanModal from "./payment-plan-modal";
+import MarkInterestedModal from "./mark-interested-modal";
+import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generator";
 
 // ── Main Component ────────────────────────────────────────────
 export default function AdminLeads() {
@@ -33,7 +38,11 @@ export default function AdminLeads() {
   const [assigningLead, setAssigningLead] = useState<any>(null);
   const [deletingLead, setDeletingLead] = useState<any>(null);
   const [viewActivities, setViewActivities] = useState<any>(null);
+  const [interestedLead, setInterestedLead] = useState<any>(null);
   const [filters, setFilters] = useState(defaultLeadFilters);
+  const [paymentPlanLead, setPaymentPlanLead] = useState<any>(null);
+  // const [contractLead, setContractLead] = useState<any>(null);
+  const [viewContractLead, setViewContractLead] = useState<any>(null);
 
   // ── Queries ──────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -125,6 +134,32 @@ export default function AdminLeads() {
     onError: () => toast.error("Failed!"),
   });
 
+  const { mutate: savePaymentPlan, isPending: isSavingPlan } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateLeadPaymentPlan(id, data),
+    onSuccess: () => {
+      toast.success(
+        paymentPlanLead?.paymentPlan
+          ? "Payment plan updated!"
+          : "Payment plan saved!"
+      );
+      setPaymentPlanLead(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+    },
+  });
+
+  const { mutate: markInterested, isPending: isMarkingInterested } = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      markLeadInterested(id, data),
+    onSuccess: () => {
+      toast.success("Lead marked as interested! ⭐");
+      setInterestedLead(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+  });
+
+
   // ── Shared Actions ───────────────────────────────────────────
   const actions = {
     onEdit: setEditingLead,
@@ -134,6 +169,10 @@ export default function AdminLeads() {
     onConvert: (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
     onMarkLost: setLostLead,
     onDelete: setDeletingLead,
+    onPaymentPlan: setPaymentPlanLead,
+    onInterested: setInterestedLead,
+
+    onViewContract: setViewContractLead,
   };
 
   return (
@@ -167,7 +206,11 @@ export default function AdminLeads() {
             <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <KanbanBoard leads={data?.data || []} programMap={programMap} actions={actions} />
+            <KanbanBoard
+              leads={data?.data || []}
+              programMap={programMap}
+              actions={actions}
+            />
         )
       )}
 
@@ -248,6 +291,54 @@ export default function AdminLeads() {
         onAssign={(userId) => assignLeadApi({ id: assigningLead._id, data: { assigned_to: userId } })}
         isAssigning={isAssigning} currentUserRole="admin"
       />
+
+      {paymentPlanLead && (
+        <PaymentPlanModal
+          lead={paymentPlanLead}
+          onClose={() => setPaymentPlanLead(null)}
+          onSubmit={(data) => savePaymentPlan({ id: paymentPlanLead._id, data })}
+          isSubmitting={isSavingPlan} />
+      )}
+
+      {interestedLead && (
+        <MarkInterestedModal
+          lead={interestedLead}
+          onClose={() => setInterestedLead(null)}
+          onSubmit={(data) => markInterested({ id: interestedLead._id, data })}
+          isSubmitting={isMarkingInterested}
+        />
+      )}
+
+      {viewContractLead && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <h3 className="font-semibold text-gray-800">Contract — {viewContractLead.fullName}</h3>
+              <button onClick={() => setViewContractLead(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <ContractPDFGenerator
+              mode="preview"
+              contractData={{
+                fullName: viewContractLead.contractDetails?.fullName,
+                email: viewContractLead.email,
+                phone: viewContractLead.phone,
+                programName: viewContractLead.program_id?.name || viewContractLead.program_name,
+                fatherHusbandName: viewContractLead.contractDetails?.fatherHusbandName,
+                cnic: viewContractLead.contractDetails?.cnic,
+                bankAccountNumber: viewContractLead.contractDetails?.bankAccountNumber,
+                currentAddress: viewContractLead.contractDetails?.currentAddress,
+                emergencyContactName: viewContractLead.contractDetails?.emergencyContactName,
+                occupation: viewContractLead.contractDetails?.occupation,
+                participationAgreement: viewContractLead.contractDetails?.participationAgreement,
+                photoVideoRelease: viewContractLead.contractDetails?.photoVideoRelease,
+                signatureData: viewContractLead.contractDetails?.signatureData,
+                signedAt: viewContractLead.contractDetails?.signedAt,
+                paymentPlan: viewContractLead.paymentPlan,
+              }}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }
