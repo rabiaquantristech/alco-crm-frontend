@@ -7,6 +7,7 @@ import {
   getActivitiesLead, getLeadsStats, getNamesPrograms,
   markLeadInterested,
   updateLeadPaymentPlan,
+  adminGetBatches,
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
@@ -75,6 +76,32 @@ export default function AdminLeads() {
     );
 
   const programMap = Object.fromEntries((programs || []).map((p: any) => [p._id, p.name]));
+
+  // Batches fetch
+  const { data: batches } = useQuery({
+    queryKey: ["batches-active"],
+    queryFn: () => adminGetBatches({ status: "active" }).then((r) => r.data),
+  });
+
+  // Inject function
+  const injectBatches = (fields: ModalField[]) =>
+    fields.map((f) =>
+      f.name === "batch_id"
+        ? {
+          ...f,
+          options: [
+            { label: "— None —", value: "" },
+            ...(batches?.data || []).map((b: any) => ({
+              label: b.name,
+              value: b._id,
+            })),
+          ],
+        }
+        : f
+    );
+
+  // Apply both injections
+  const injectAll = (fields: ModalField[]) => injectBatches(injectPrograms(fields));
 
   const pipelineData = [
     { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
@@ -206,11 +233,11 @@ export default function AdminLeads() {
             <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-            <KanbanBoard
-              leads={data?.data || []}
-              programMap={programMap}
-              actions={actions}
-            />
+          <KanbanBoard
+            leads={data?.data || []}
+            programMap={programMap}
+            actions={actions}
+          />
         )
       )}
 
@@ -250,11 +277,11 @@ export default function AdminLeads() {
       <LeadsModals
         // Add
         isAddOpen={isAddOpen} onAddClose={() => setIsAddOpen(false)}
-        onAddSubmit={addLead} isAdding={isAdding} addFields={injectPrograms(addLeadFields)}
+        onAddSubmit={addLead} isAdding={isAdding} addFields={injectAll(addLeadFields)}
         // Edit
         editingLead={editingLead} onEditClose={() => setEditingLead(null)}
         onEditSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
-        isUpdating={isUpdating} editFields={injectPrograms(editLeadFields)}
+        isUpdating={isUpdating} editFields={injectAll(editLeadFields)}
         editInitialValues={editingLead ? {
           first_name: editingLead.first_name || "",
           last_name: editingLead.last_name || "",
@@ -263,6 +290,7 @@ export default function AdminLeads() {
           nationality: editingLead.nationality || "",
           profession: editingLead.profession || "",
           opportunity_value: editingLead.opportunity_value || "",
+          batch_id: editingLead.batch_id?._id || editingLead.batch_id || "",
           program_id: editingLead.program_id?._id || editingLead.program_id || "",
           status: editingLead.status || "",
           quality: editingLead.quality || "",

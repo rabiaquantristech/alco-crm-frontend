@@ -307,7 +307,7 @@ function PaymentsContent() {
 
 export default function PaymentsPage() {
   return (
-    <ProtectedRoute allowedRoles={["user", "admin", "super_admin"]}>
+    <ProtectedRoute allowedRoles={["user", "admin", "super_admin", "finance_manager"]}>
       <PaymentsContent />
     </ProtectedRoute>
   );

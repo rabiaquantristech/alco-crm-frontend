@@ -26,7 +26,7 @@ export default function AuditLogsPage() {
     {
       type: "select", name: "module",
       options: [
-        { label: "Finance", value: "finance" },
+        { label: "Finance", value: "finance_manager" },
         { label: "Enrollment", value: "enrollment" },
         { label: "Access", value: "access" },
         { label: "Admin", value: "admin" },

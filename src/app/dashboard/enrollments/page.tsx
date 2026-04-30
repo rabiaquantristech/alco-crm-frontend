@@ -9,6 +9,9 @@ import {
   graduateEnrollment,
   suspendEnrollment,
   reactivateEnrollment,
+  getNamesPrograms,
+  getAllUsersForRole,
+  adminGetBatches,
 } from "@/utils/api";
 import PageHeader, { FilterField } from "@/app/component/dashboard/page-header";
 import DynamicTable from "@/app/component/dashboard/dynamic-table";
@@ -16,9 +19,18 @@ import Modal from "@/app/component/ui/model/modal";
 import Popup from "@/app/component/ui/popup/popup";
 import { ModalField } from "@/types/ui";
 import toast from "react-hot-toast";
-import { BookOpen, Pencil, Trash2, GraduationCap, PauseCircle, PlayCircle } from "lucide-react";
+import {
+  BookOpen,
+  Pencil,
+  Trash2,
+  GraduationCap,
+  PauseCircle,
+  PlayCircle,
+} from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import ProtectedRoute from "@/app/component/protected-route";
+
+// ─── Badge Helpers ─────────────────────────────────────────────────────────────
 
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
@@ -42,31 +54,52 @@ const accessColor = (status: string) => {
   return map[status] || "bg-gray-100 text-gray-600";
 };
 
-const createFields: ModalField[] = [
-  { name: "user", label: "User ID", type: "input", inputType: "text", placeholder: "MongoDB ObjectId" },
-  { name: "program", label: "Program ID", type: "input", inputType: "text", placeholder: "MongoDB ObjectId" },
-  { name: "batch", label: "Batch ID (optional)", type: "input", inputType: "text", placeholder: "MongoDB ObjectId" },
-];
+const roleColor = (role: string) => {
+  const map: Record<string, string> = {
+    admin: "bg-purple-100 text-purple-700",
+    super_admin: "bg-rose-100 text-rose-700",
+    student: "bg-blue-100 text-blue-700",
+    instructor: "bg-amber-100 text-amber-700",
+    finance_manager: "bg-teal-100 text-teal-700",
+  };
+  return map[role] || "bg-gray-100 text-gray-600";
+};
 
-const editFields: ModalField[] = [
-  { name: "progress", label: "Progress (%)", type: "input", inputType: "number", placeholder: "0-100" },
-  {
-    name: "status", label: "Status", type: "select",
-    options: [
-      { label: "Active", value: "active" },
-      { label: "Pending", value: "pending" },
-      { label: "Completed", value: "completed" },
-      { label: "Suspended", value: "suspended" },
-      { label: "Cancelled", value: "cancelled" },
-      { label: "Blocked", value: "blocked" },
-    ],
-  },
-];
+// ─── Edit Fields (static) ──────────────────────────────────────────────────────
+
+// const editFields: ModalField[] = [
+//   {
+//     name: "progress",
+//     label: "Progress (%)",
+//     type: "input",
+//     inputType: "number",
+//     placeholder: "0-100",
+//   },
+//   {
+//     name: "status",
+//     label: "Status",
+//     type: "select",
+//     options: [
+//       { label: "Active", value: "active" },
+//       { label: "Pending", value: "pending" },
+//       { label: "Completed", value: "completed" },
+//       { label: "Suspended", value: "suspended" },
+//       { label: "Cancelled", value: "cancelled" },
+//       { label: "Blocked", value: "blocked" },
+//     ],
+//   },
+// ];
+
+
+// ─── Main Content ──────────────────────────────────────────────────────────────
 
 function EnrollmentsContent() {
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((state) => state.auth);
   const isAdmin = ["admin", "super_admin"].includes(authUser?.role);
+  const isSalesManager = authUser?.role === "sales_manager";
+  const canAdd = isAdmin || isSalesManager;
+  const canAction = isAdmin || isSalesManager;
 
   const [filters, setFilters] = useState<Record<string, string>>({
     status: "",
@@ -81,10 +114,128 @@ function EnrollmentsContent() {
   const [suspendingEnrollment, setSuspendingEnrollment] = useState<any>(null);
   const [reactivatingEnrollment, setReactivatingEnrollment] = useState<any>(null);
 
+  // ── Dropdown data ────────────────────────────────────────────────────────
+  // getNamesPrograms returns Program[] directly (already .then(r => r.data.data))
+  const { data: programs = [] } = useQuery({
+    queryKey: ["program-names"],
+    queryFn: getNamesPrograms,
+    // staleTime: 1000 * 60 * 5,
+  });
+
+  // getAllUsersForRole returns { data: User[] }
+  const { data: usersRes } = useQuery({
+    queryKey: ["all-users-role"],
+    queryFn: () => getAllUsersForRole().then((r) => r.data),
+    // staleTime: 1000 * 60 * 5,
+  });
+  const users = (usersRes?.users ?? []).filter((u: any) => u.role === "user");
+
+  console.log("Users for dropdown:", users);
+
+  // adminGetBatches — only active batches for dropdown
+  const { data: batchesRes } = useQuery({
+    queryKey: ["batches-active"],
+    queryFn: () => adminGetBatches({ status: "active" }).then((r) => r.data),
+    // staleTime: 1000 * 60 * 2,
+  });
+  const activeBatches = batchesRes?.data ?? [];
+
+  // ── Dynamic create fields with dropdowns ─────────────────────────────────
+  const createFields: ModalField[] = [
+    {
+      name: "user",
+      label: "Student",
+      type: "select",
+      options: users.map((u: any) => ({
+        label: `${u.name} (${u.email || u.phone || "—"})`,
+        value: u._id,
+      })),
+    },
+    {
+      name: "program",
+      label: "Program",
+      type: "select",
+      options: programs.map((p: any) => ({
+        label: p.name,
+        value: p._id,
+      })),
+    },
+    {
+      name: "batch",
+      label: "Batch (optional)",
+      type: "select",
+      options: [
+        { label: "— None —", value: "" },
+        ...activeBatches.map((b: any) => ({
+          label: b.name,
+          value: b._id,
+        })),
+      ],
+    },
+  ];
+
+  const editFields: ModalField[] = [
+    {
+      name: "progress",
+      label: "Progress (%)",
+      type: "input",
+      inputType: "number",
+      placeholder: "0-100",
+    },
+    // {
+    //   name: "status",
+    //   label: "Status",
+    //   type: "select",
+    //   options: [
+    //     { label: "Active", value: "active" },
+    //     { label: "Pending", value: "pending" },
+    //     { label: "Completed", value: "completed" },
+    //     { label: "Suspended", value: "suspended" },
+    //     { label: "Cancelled", value: "cancelled" },
+    //     { label: "Blocked", value: "blocked" },
+    //   ],
+    // },
+    // {
+    //   name: "accessStatus",
+    //   label: "Access Status",
+    //   type: "select",
+    //   options: [
+    //     { label: "Active", value: "ACTIVE" },
+    //     { label: "Grace", value: "GRACE" },
+    //     { label: "Extended", value: "EXTENDED" },
+    //     { label: "Restricted", value: "RESTRICTED" },
+    //     { label: "Blocked", value: "BLOCKED" },
+    //   ],
+    // },
+    {
+      name: "program_id",
+      label: "Program",
+      type: "select",
+      options: programs.map((p: any) => ({
+        label: p.name,
+        value: p._id,
+      })),
+    },
+    {
+      name: "batch_id",
+      label: "Batch",
+      type: "select",
+      options: [
+        { label: "— None —", value: "" },
+        ...activeBatches.map((b: any) => ({
+          label: b.name,
+          value: b._id,
+        })),
+      ],
+    },
+  ];
+
+  // ── Filter fields ─────────────────────────────────────────────────────────
   const filterFields: FilterField[] = [
     { type: "input", name: "search", placeholder: "Search..." },
     {
-      type: "select", name: "status",
+      type: "select",
+      name: "status",
       options: [
         { label: "Active", value: "active" },
         { label: "Completed", value: "completed" },
@@ -95,6 +246,7 @@ function EnrollmentsContent() {
     },
   ];
 
+  // ── Main query ────────────────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
     queryKey: ["enrollments", filters],
     queryFn: () =>
@@ -105,7 +257,7 @@ function EnrollmentsContent() {
       }).then((r) => r.data),
   });
 
-  // POST /api/v1/enrollments
+  // ── Mutations ─────────────────────────────────────────────────────────────
   const { mutate: addEnrollment, isPending: isAdding } = useMutation({
     mutationFn: createEnrollment,
     onSuccess: () => {
@@ -113,12 +265,13 @@ function EnrollmentsContent() {
       setIsAddOpen(false);
       queryClient.invalidateQueries({ queryKey: ["enrollments"] });
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.message || "Failed!"),
   });
 
-  // PUT /api/v1/enrollments/:id
   const { mutate: editEnrollment, isPending: isUpdating } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateEnrollment(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateEnrollment(id, data),
     onSuccess: () => {
       toast.success("Updated! ✅");
       setEditingEnrollment(null);
@@ -127,7 +280,6 @@ function EnrollmentsContent() {
     onError: () => toast.error("Failed to update!"),
   });
 
-  // DELETE /api/v1/enrollments/:id
   const { mutate: deleteEnroll, isPending: isDeleting } = useMutation({
     mutationFn: (id: string) => deleteEnrollment(id),
     onSuccess: () => {
@@ -138,7 +290,6 @@ function EnrollmentsContent() {
     onError: () => toast.error("Failed to delete!"),
   });
 
-  // POST /api/v1/enrollments/:id/graduate
   const { mutate: graduate, isPending: isGraduating } = useMutation({
     mutationFn: (id: string) => graduateEnrollment(id),
     onSuccess: () => {
@@ -149,7 +300,6 @@ function EnrollmentsContent() {
     onError: () => toast.error("Failed!"),
   });
 
-  // POST /api/v1/enrollments/:id/suspend
   const { mutate: suspend, isPending: isSuspending } = useMutation({
     mutationFn: (id: string) => suspendEnrollment(id),
     onSuccess: () => {
@@ -160,7 +310,6 @@ function EnrollmentsContent() {
     onError: () => toast.error("Failed!"),
   });
 
-  // POST /api/v1/enrollments/:id/reactivate
   const { mutate: reactivate, isPending: isReactivating } = useMutation({
     mutationFn: (id: string) => reactivateEnrollment(id),
     onSuccess: () => {
@@ -171,6 +320,8 @@ function EnrollmentsContent() {
     onError: () => toast.error("Failed!"),
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <>
       <PageHeader
@@ -178,7 +329,7 @@ function EnrollmentsContent() {
         subtitle="Manage all student enrollments"
         titleIcon={<BookOpen size={24} />}
         totalCount={data?.meta?.total ?? 0}
-        onAdd={isAdmin ? () => setIsAddOpen(true) : undefined}
+        onAdd={canAdd ? () => setIsAddOpen(true) : undefined}
         filters={filters}
         setFilters={setFilters}
         filterFields={filterFields}
@@ -190,98 +341,137 @@ function EnrollmentsContent() {
         isError={isError}
         columns={[
           {
-            key: "user", label: "Student",
+            key: "user",
+            label: "Student",
             render: (e) => (
-              <div>
-                <p className="font-medium text-gray-800">{e.user?.name || "—"}</p>
-                <p className="text-xs text-gray-400">{e.user?.email}</p>
+              <div className="flex items-center gap-2">
+                <div>
+                  <p className="font-medium text-gray-800">
+                    {e.user?.name || "—"}
+                  </p>
+                  <p className="text-xs text-gray-400">{e.user?.email}</p>
+                </div>
               </div>
             ),
           },
           {
-            key: "program", label: "Program",
-            render: (e) => <span className="text-gray-700">{e.program?.name || "—"}</span>,
-          },
-          {
-            key: "batch", label: "Batch",
-            render: (e) => <span className="text-gray-500 text-sm">{e.batch?.name || "—"}</span>,
-          },
-          {
-            key: "status", label: "Status",
+            key: "role",
+            label: "Role",
             render: (e) => (
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(e.status)}`}>
+              <span
+                className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColor(e.user?.role)}`}
+              >
+                {e.user?.role || "—"}
+              </span>
+            ),
+          },
+          {
+            key: "program",
+            label: "Program",
+            render: (e) => (
+              <span className="text-gray-700">{e.program?.name || "—"}</span>
+            ),
+          },
+          {
+            key: "batch",
+            label: "Batch",
+            render: (e) => (
+              <span className="text-gray-500 text-sm">
+                {e.batch?.name || "—"}
+              </span>
+            ),
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (e) => (
+              <span
+                className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(e.status)}`}
+              >
                 {e.status}
               </span>
             ),
           },
           {
-            key: "accessStatus", label: "Access",
+            key: "accessStatus",
+            label: "Access",
             render: (e) => (
-              <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${accessColor(e.accessStatus)}`}>
+              <span
+                className={`px-2.5 py-1 rounded-full text-xs font-medium ${accessColor(e.accessStatus)}`}
+              >
                 {e.accessStatus || "—"}
               </span>
             ),
           },
           {
-            key: "progress", label: "Progress",
+            key: "progress",
+            label: "Progress",
             render: (e) => (
               <div className="flex items-center gap-2">
                 <div className="w-16 bg-gray-100 rounded-full h-1.5">
-                  <div className="h-1.5 rounded-full bg-yellow-400" style={{ width: `${e.progress || 0}%` }} />
+                  <div
+                    className="h-1.5 rounded-full bg-yellow-400"
+                    style={{ width: `${e.progress || 0}%` }}
+                  />
                 </div>
-                <span className="text-xs text-gray-500">{e.progress || 0}%</span>
+                <span className="text-xs text-gray-500">
+                  {e.progress || 0}%
+                </span>
               </div>
             ),
           },
           {
-            key: "enrolledAt", label: "Enrolled",
+            key: "enrolledAt",
+            label: "Enrolled",
             render: (e) => (
               <span className="text-gray-400 text-sm">
-                {e.enrolledAt ? new Date(e.enrolledAt).toLocaleDateString() : "—"}
+                {e.enrolledAt
+                  ? new Date(e.enrolledAt).toLocaleDateString()
+                  : "—"}
               </span>
             ),
           },
         ]}
-        actions={[
+
+        actions={canAction ? [
           {
             icon: <Pencil size={14} />,
             label: "Edit",
             onClick: (e) => setEditingEnrollment(e),
             className: "hover:bg-yellow-50 hover:text-yellow-600",
-            hidden: () => !isAdmin,
           },
           {
             icon: <GraduationCap size={14} />,
             label: "Graduate",
             onClick: (e) => setGraduatingEnrollment(e),
             className: "hover:bg-teal-50 hover:text-teal-600",
-            hidden: (e) => e.isGraduated || e.status !== "active" || !isAdmin,
+            hidden: (e) => e.isGraduated || e.status !== "active",
           },
           {
             icon: <PauseCircle size={14} />,
             label: "Suspend",
             onClick: (e) => setSuspendingEnrollment(e),
             className: "hover:bg-yellow-50 hover:text-yellow-600",
-            hidden: (e) => e.status !== "active" || !isAdmin,
+            hidden: (e) => e.status !== "active",
           },
           {
             icon: <PlayCircle size={14} />,
             label: "Reactivate",
             onClick: (e) => setReactivatingEnrollment(e),
             className: "hover:bg-green-50 hover:text-green-600",
-            hidden: (e) => e.status !== "suspended" || !isAdmin,
+            hidden: (e) => e.status !== "suspended",
           },
           {
             icon: <Trash2 size={14} />,
             label: "Delete",
             onClick: (e) => setDeletingEnrollment(e),
             className: "hover:bg-rose-50 hover:text-rose-500",
-            hidden: () => !isAdmin,
+            hidden: () => !isAdmin, // sirf admin delete kar sakta
           },
-        ]}
+        ] : []}
       />
 
-      {/* Add Modal */}
+      {/* Add Modal — dropdowns for user, program, batch */}
       <Modal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
@@ -302,9 +492,14 @@ function EnrollmentsContent() {
           fields={editFields}
           initialValues={{
             progress: editingEnrollment.progress || 0,
-            status: editingEnrollment.status,
+            // status: editingEnrollment.status,
+            batch_id: editingEnrollment.batch_id?._id || editingEnrollment.batch_id || "",
+            program_id: editingEnrollment.program_id?._id || editingEnrollment.program_id || "",
+            // accessStatus: editingEnrollment.accessStatus || "",
           }}
-          onSubmit={(data) => editEnrollment({ id: editingEnrollment._id, data })}
+          onSubmit={(data) =>
+            editEnrollment({ id: editingEnrollment._id, data })
+          }
           isLoading={isUpdating}
           mode="edit"
         />
@@ -319,7 +514,13 @@ function EnrollmentsContent() {
           variant="info"
           title="Graduate Student"
           description={
-            <>Mark <span className="font-bold text-teal-600">{graduatingEnrollment.user?.name}</span> as graduated?</>
+            <>
+              Mark{" "}
+              <span className="font-bold text-teal-600">
+                {graduatingEnrollment.user?.name}
+              </span>{" "}
+              as graduated?
+            </>
           }
           confirmText="Yes, Graduate 🎓"
           isLoading={isGraduating}
@@ -336,7 +537,13 @@ function EnrollmentsContent() {
           variant="danger"
           title="Suspend Enrollment"
           description={
-            <>Suspend enrollment of <span className="font-bold text-yellow-600">{suspendingEnrollment.user?.name}</span>?</>
+            <>
+              Suspend enrollment of{" "}
+              <span className="font-bold text-yellow-600">
+                {suspendingEnrollment.user?.name}
+              </span>
+              ?
+            </>
           }
           confirmText="Yes, Suspend"
           isLoading={isSuspending}
@@ -353,7 +560,13 @@ function EnrollmentsContent() {
           variant="info"
           title="Reactivate Enrollment"
           description={
-            <>Reactivate enrollment of <span className="font-bold text-green-600">{reactivatingEnrollment.user?.name}</span>?</>
+            <>
+              Reactivate enrollment of{" "}
+              <span className="font-bold text-green-600">
+                {reactivatingEnrollment.user?.name}
+              </span>
+              ?
+            </>
           }
           confirmText="Yes, Reactivate"
           isLoading={isReactivating}
@@ -370,7 +583,13 @@ function EnrollmentsContent() {
           variant="danger"
           title="Delete Enrollment"
           description={
-            <>Delete enrollment of <span className="font-bold text-rose-500">{deletingEnrollment.user?.name}</span>? This cannot be undone.</>
+            <>
+              Delete enrollment of{" "}
+              <span className="font-bold text-rose-500">
+                {deletingEnrollment.user?.name}
+              </span>
+              ? This cannot be undone.
+            </>
           }
           confirmText="Yes, Delete"
           isLoading={isDeleting}
@@ -383,7 +602,7 @@ function EnrollmentsContent() {
 
 export default function EnrollmentsPage() {
   return (
-    <ProtectedRoute allowedRoles={["admin", "super_admin", "finance_manager"]}>
+    <ProtectedRoute allowedRoles={["admin", "super_admin", "finance_manager", "sales_manager", "sales_rep"]}>
       <EnrollmentsContent />
     </ProtectedRoute>
   );

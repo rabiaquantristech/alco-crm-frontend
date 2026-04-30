@@ -73,6 +73,12 @@ const menuSections: MenuSection[] = [
         roles: ["super_admin", "admin", "user"],
       },
       {
+        label: "Batches",
+        href: "/dashboard/batches",
+        icon: ClipboardList,
+        roles: ["super_admin", "admin", "sales_manager", "sales_rep"],
+      },
+      {
         label: "Audit Logs",
         href: "/dashboard/audit-logs",
         icon: ScrollText,
@@ -82,7 +88,7 @@ const menuSections: MenuSection[] = [
         label: "Payments",
         href: "/dashboard/payments",
         icon: Receipt,
-        roles: ["finance_manager"],
+        roles: ["super_admin", "admin", "finance_manager"],
       },
       {
         label: "Contract",
@@ -94,19 +100,19 @@ const menuSections: MenuSection[] = [
         label: "Settings",
         href: "/dashboard/settings",
         icon: Settings,
-        roles: ["super_admin", "admin", "user", "finance_manager"],
+        roles: ["super_admin", "admin", "user", "sales_manager", "sales_rep", "finance_manager"],
       },
     ],
   },
   {
     title: "Enrollments",
-    roles: ["super_admin", "admin", "finance_manager"],
+    roles: ["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"],
     mode: "crm",
     items: [
       {
         label: "Enrollments",
         icon: ClipboardList,
-        roles: ["super_admin", "admin", "finance_manager"],
+        roles: ["super_admin", "admin", "finance_manager", "sales_manager", "sales_rep"],
         children: [
           { label: "All Enrollments", href: "/dashboard/enrollments" },
           { label: "Active", href: "/dashboard/enrollments?status=active" },
@@ -144,15 +150,15 @@ const menuSections: MenuSection[] = [
           { label: "Upcoming Dues", href: "/dashboard/finance/invoices/upcoming" },
         ],
       },
-      {
-        label: "Payments",
-        icon: Receipt,
-        roles: ["super_admin", "admin", "finance_manager"],
-        children: [
-          { label: "All Payments", href: "/dashboard/finance/payments" },
-          { label: "Pending Approval", href: "/dashboard/finance/payments/pending" },
-        ],
-      },
+      // {
+      //   label: "Payments",
+      //   icon: Receipt,
+      //   roles: ["super_admin", "admin", "finance_manager"],
+      //   children: [
+      //     { label: "All Payments", href: "/dashboard/finance/payments" },
+      //     { label: "Pending Approval", href: "/dashboard/finance/payments/pending" },
+      //   ],
+      // },
       {
         label: "Reports",
         icon: TrendingUp,

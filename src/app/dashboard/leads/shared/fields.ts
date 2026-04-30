@@ -11,7 +11,13 @@ export const addLeadFields: ModalField[] = [
   { name: "opportunity_value", label: "Opportunity Value (Rs)", type: "input", inputType: "number", placeholder: "200000" },
   {
     name: "program_id", label: "Program", type: "select",
-    options: [], // dynamically injected
+    options: [],
+  },
+  {
+    name: "batch_id",
+    label: "Batch",
+    type: "select",
+    options: [],
   },
   {
     name: "source", label: "Source", type: "select",
@@ -79,7 +85,13 @@ export const editLeadFields: ModalField[] = [
   { name: "opportunity_value", label: "Opportunity Value (Rs)", type: "input", inputType: "number" },
   {
     name: "program_id", label: "Program", type: "select",
-    options: [], // dynamically injected
+    options: [],
+  },
+  {
+    name: "batch_id",
+    label: "Batch",
+    type: "select",
+    options: [],
   },
   {
     name: "status", label: "Status", type: "select",

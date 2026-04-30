@@ -59,7 +59,7 @@ export default function InvoicesPage() {
   const { user: authUser } = useAppSelector((state) => state.auth);
 
   const isStudent = authUser?.role === "user";
-  const isAdmin = ["admin", "super_admin", "finance"].includes(authUser?.role || "");
+  const isAdmin = ["admin", "super_admin", "finance_manager"].includes(authUser?.role || "");
 
   const [filters, setFilters] = useState({ status: "", search: "", page: "1", limit: "10" });
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -207,7 +207,7 @@ export default function InvoicesPage() {
             : []),
         ]}
         actions={
-          isAdmin
+          isAdmin 
             ? [
               // {
               //   icon: <Pencil size={14} />,
