@@ -70,7 +70,7 @@ const menuSections: MenuSection[] = [
         label: "Courses",
         href: "/dashboard/courses",
         icon: FileVolume,
-        roles: ["super_admin", "admin", "user"],
+        roles: ["user"],
       },
       {
         label: "Batches",

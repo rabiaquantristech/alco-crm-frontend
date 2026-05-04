@@ -1,9 +1,9 @@
 import { StatCardProps } from "@/types/dasboard";
 
 
-export function StatCard({ title, value, change, icon: Icon, bg, text }: StatCardProps) {
+export function StatCard({ title, value, change, icon: Icon, bg, text, onClick }: StatCardProps) {
   return (
-    <div className={`${bg} ${text} rounded-xl p-5 shadow-sm`}>
+    <div className={`${bg} ${text} rounded-xl p-5 shadow-sm`} onClick={onClick}>
       <div className="flex justify-between items-start">
         <p className="text-sm opacity-80">{title}</p>
         <Icon size={18} className="opacity-70" />
@@ -14,9 +14,9 @@ export function StatCard({ title, value, change, icon: Icon, bg, text }: StatCar
   );
 }
 
-export function StatCarduser({ title, value, icon: Icon, sub, iconBg, progress, iconColor }: StatCardProps) {
+export function StatCarduser({ title, value, icon: Icon, sub, iconBg, progress, iconColor, onClick }: StatCardProps) {
   return (
-        <div key={title} className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col gap-2.5 shadow-sm">
+        <div key={title} className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col gap-2.5 shadow-sm" onClick={onClick}>
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-500">{title}</span>
             <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: iconBg }}>

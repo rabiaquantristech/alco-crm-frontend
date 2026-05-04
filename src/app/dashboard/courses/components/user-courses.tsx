@@ -6,13 +6,27 @@ import API from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import { FileVolume, BookOpen, Play, Clock, CheckCircle, Lock, ChevronRight, Award, Users, Calendar } from "lucide-react";
 import LessonModal from "./lesson-modal";
+import { useAppSelector } from "@/store/hooks";
 
 // ── API calls ─────────────────────────────────────────────────
 const getMyEnrollmentsWithProgress = () =>
   API.get("/api/v1/enrollments/my").then((r) => r.data.data);
 
+// ── API call fix ──────────────────────────────────────────────
+// const getMyEnrollmentsWithProgress = () =>
+//   API.get("/api/v1/enrollments/my").then((r) => {
+//     console.log("API response:", r.data); // ← structure dekho
+//     const data = r.data.data ?? r.data ?? [];
+//     return Array.isArray(data) ? data : [];
+//   });
+
 const getLearningDashboard = (enrollmentId: string) =>
-  API.get(`/api/v1/learn/${enrollmentId}`).then((r) => r.data.data);
+  API.get(`/api/v1/learn/${enrollmentId}`).then((r) => {
+    console.log("Learn dashboard response for enrollment", enrollmentId, ":", r.data);
+    return r.data.data;
+  });
+// const getLearningDashboard = (enrollmentId: string) =>
+//   API.get(`/api/v1/learn/${enrollmentId}`).then((r) => r.data.data);
 
 // ── Progress Ring ─────────────────────────────────────────────
 function ProgressRing({ pct, size = 48 }: { pct: number; size?: number }) {
@@ -34,6 +48,7 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
 
   const { data: dashboard, isLoading } = useQuery({
@@ -41,13 +56,14 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
     queryFn: () => getLearningDashboard(enrollment._id),
     enabled: open,
   });
+  
 
   const pct = enrollment.progress || 0;
   const isComplete = enrollment.status === "completed" || pct >= 100;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      {/* Card Header */}
+      {/* ── Card Header ── */}
       <div className="p-5">
         <div className="flex items-start gap-4">
           {/* Progress Ring */}
@@ -61,14 +77,41 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-semibold text-gray-900 text-base leading-tight">{enrollment.program?.name || "Program"}</h3>
-                <p className="text-xs text-gray-400 mt-1">
+                <h3 className="font-semibold text-gray-900 text-base leading-tight">
+                  {enrollment.program?.name || "Program"}
+                </h3>
+                {/* <p className="text-xs text-gray-400 mt-1">
                   {enrollment.batch?.name ? `Batch: ${enrollment.batch.name}` : "No batch assigned"}
-                </p>
+                </p> */}
+                {/* Batch Info */}
+                {enrollment.batch && (
+                  <div className="flex items-center gap-3 mt-3 p-3 bg-indigo-50 rounded-xl">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                      <Calendar size={13} className="text-indigo-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-indigo-700">{enrollment.batch.name}</p>
+                      <p className="text-xs text-indigo-400 mt-0.5">
+                        {enrollment.batch.start_date
+                          ? new Date(enrollment.batch.start_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                          : "—"}
+                        {enrollment.batch.end_date && (
+                          <> → {new Date(enrollment.batch.end_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</>
+                        )}
+                      </p>
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${enrollment.batch.status === "active" ? "bg-emerald-100 text-emerald-700" :
+                        enrollment.batch.status === "upcoming" ? "bg-blue-100 text-blue-700" :
+                          "bg-gray-100 text-gray-500"
+                      }`}>
+                      {enrollment.batch.status}
+                    </span>
+                  </div>
+                )}
               </div>
               {isComplete ? (
                 <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-full shrink-0">
-                  <CheckCircle size={11} />Completed
+                  <CheckCircle size={11} /> Completed
                 </span>
               ) : (
                 <span className="text-xs font-medium text-yellow-700 bg-yellow-50 px-2.5 py-1 rounded-full shrink-0">
@@ -80,11 +123,16 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
             {/* Progress bar */}
             <div className="mt-3">
               <div className="flex justify-between text-xs text-gray-400 mb-1">
-                <span>{dashboard?.completed_lessons || 0} of {dashboard?.total_lessons || "—"} lessons</span>
+                <span>
+                  {dashboard?.completed_lessons || 0} of {dashboard?.total_lessons || "—"} lessons
+                </span>
                 <span>{pct}% complete</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full bg-yellow-400 transition-all duration-700" style={{ width: `${pct}%` }} />
+                <div
+                  className="h-1.5 rounded-full bg-yellow-400 transition-all duration-700"
+                  style={{ width: `${pct}%` }}
+                />
               </div>
             </div>
           </div>
@@ -97,55 +145,144 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
             className="flex-1 flex items-center justify-center gap-2 bg-yellow-400 text-gray-900 font-semibold text-sm py-2.5 rounded-xl hover:bg-yellow-500 transition-colors"
           >
             <Play size={14} className="fill-gray-900" />
-            {pct === 0 ? "Start Learning" : "Continue"}
+            {pct === 0 ? "Start Learning" : "Continue Learning"}
           </button>
           <button
             onClick={() => setOpen(!open)}
-            className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${open ? "border-yellow-300 bg-yellow-50 text-yellow-700" : "border-gray-200 text-gray-600 hover:bg-gray-50"
+            className={`px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors ${open
+                ? "border-yellow-300 bg-yellow-50 text-yellow-700"
+                : "border-gray-200 text-gray-600 hover:bg-gray-50"
               }`}
           >
-            {open ? "Hide" : "Show Courses"}
+            {open ? "Hide" : "Quick View"}
           </button>
         </div>
       </div>
 
-      {/* Course List (expandable) */}
+      {/* ── Course List (expandable) ── */}
       {open && (
         <div className="border-t border-gray-100 bg-gray-50">
           {isLoading ? (
             <div className="py-6 text-center text-sm text-gray-400">Loading courses...</div>
+          ) : !dashboard?.courses?.length ? (
+            <div className="py-6 text-center text-sm text-gray-400">No courses found</div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {(dashboard?.courses || []).map((course: any, idx: number) => (
-                <div
-                  key={course._id}
-                  //   onClick={() => router.push(`/dashboard/learn/${enrollment._id}/courses/${course._id}`)}
-                  onClick={() => setActiveLessonId(course._id)}
-                  className="flex items-center gap-3 px-5 py-3.5 hover:bg-white cursor-pointer transition-colors group"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-gray-200 flex items-center justify-center shrink-0 text-xs font-bold text-gray-500 group-hover:bg-yellow-100 group-hover:text-yellow-700 transition-colors">
-                    {idx + 1}
+              {dashboard.courses.map((course: any, idx: number) => (
+                <div key={course._id}>
+                  {/* ── Course Row ── */}
+                  <div
+                    onClick={() =>
+                      setExpandedCourse(expandedCourse === course._id ? null : course._id)
+                    }
+                    className="flex items-center gap-3 px-5 py-3.5 hover:bg-white cursor-pointer transition-colors group"
+                  >
+                    <div className="w-7 h-7 rounded-lg bg-gray-200 flex items-center justify-center shrink-0 text-xs font-bold text-gray-500 group-hover:bg-yellow-100 group-hover:text-yellow-700 transition-colors">
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{course.title}</p>
+                      <p className="text-xs text-gray-400">{course.total_lessons || 0} lessons</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {course.progress_percentage >= 100 ? (
+                        <CheckCircle size={14} className="text-green-500" />
+                      ) : course.progress_percentage > 0 ? (
+                        <span className="text-xs text-yellow-600 font-medium">
+                          {course.progress_percentage}%
+                        </span>
+                      ) : null}
+                      <ChevronRight
+                        size={14}
+                        className={`text-gray-300 transition-all duration-200 ${expandedCourse === course._id ? "rotate-90 text-yellow-500" : "group-hover:text-gray-500"
+                          }`}
+                      />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{course.title}</p>
-                    <p className="text-xs text-gray-400">{course.total_lessons || 0} lessons</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {course.progress_percentage >= 100 ? (
-                      <CheckCircle size={14} className="text-green-500" />
-                    ) : course.progress_percentage > 0 ? (
-                      <span className="text-xs text-yellow-600 font-medium">{course.progress_percentage}%</span>
-                    ) : (
-                      <Lock size={13} className="text-gray-300" />
-                    )}
-                    <ChevronRight size={14} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-                  </div>
+
+                  {/* ── Modules + Lessons (expanded) ── */}
+                  {expandedCourse === course._id && (
+                    <div className="bg-white border-t border-gray-100">
+                      {!course.modules?.length ? (
+                        <div className="px-6 py-4 text-xs text-gray-400">No modules found</div>
+                      ) : (
+                        course.modules.map((mod: any) => (
+                          <div key={mod._id}>
+                            {/* Module Header */}
+                            <div className="px-6 py-2.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                {mod.title}
+                              </span>
+                              {mod.progress_percentage > 0 && (
+                                <span className="text-xs text-yellow-600 font-medium">
+                                  {mod.progress_percentage}%
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Lessons */}
+                            {!mod.lessons?.length ? (
+                              <div className="px-8 py-3 text-xs text-gray-400">No lessons</div>
+                            ) : (
+                              mod.lessons.map((lesson: any) => (
+                                <div
+                                  key={lesson._id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveLessonId(lesson._id);
+                                  }}
+                                  className="flex items-center gap-3 px-6 py-3 hover:bg-yellow-50 cursor-pointer border-t border-gray-50 group/lesson transition-colors"
+                                >
+                                  {/* Complete / Play icon */}
+                                  <div
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${lesson.is_completed
+                                        ? "bg-green-100"
+                                        : "bg-gray-100 group-hover/lesson:bg-yellow-100"
+                                      }`}
+                                  >
+                                    {lesson.is_completed ? (
+                                      <CheckCircle size={12} className="text-green-500" />
+                                    ) : (
+                                      <Play size={9} className="text-gray-400 group-hover/lesson:text-yellow-600" />
+                                    )}
+                                  </div>
+
+                                  <span className="text-sm text-gray-700 flex-1 truncate">
+                                    {lesson.title}
+                                  </span>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {lesson.duration_minutes > 0 && (
+                                      <span className="text-xs text-gray-400">
+                                        {lesson.duration_minutes}m
+                                      </span>
+                                    )}
+                                    {lesson.progress_percentage > 0 && !lesson.is_completed && (
+                                      <span className="text-xs text-yellow-600 font-medium">
+                                        {lesson.progress_percentage}%
+                                      </span>
+                                    )}
+                                    <ChevronRight
+                                      size={13}
+                                      className="text-gray-300 group-hover/lesson:text-gray-500 transition-colors"
+                                    />
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
       )}
+
+      {/* ── Lesson Modal ── */}
       {activeLessonId && (
         <LessonModal
           enrollmentId={enrollment._id}
@@ -162,13 +299,22 @@ function EnrollmentCard({ enrollment }: { enrollment: any }) {
 
 // ── Main User Courses Component ───────────────────────────────
 export default function UserCourses() {
+  const { user: authUser } = useAppSelector((state) => state.auth); // ← add karo
+
   const { data: enrollments, isLoading, isError } = useQuery({
     queryKey: ["my-enrollments"],
     queryFn: getMyEnrollmentsWithProgress,
+    enabled: !!authUser,  // ← auth ready hone tak wait karo
+    staleTime: 0,         // ← hamesha fresh data fetch karo
   });
 
-  const active = enrollments?.filter((e: any) => e.status === "active") || [];
-  const completed = enrollments?.filter((e: any) => e.status === "completed" || e.isGraduated) || [];
+  // safe array
+  const list = Array.isArray(enrollments) ? enrollments
+    : Array.isArray((enrollments as any)?.data) ? (enrollments as any).data
+      : [];
+
+  const active = list.filter((e: any) => e.status === "active");
+  const completed = list.filter((e: any) => e.status === "completed" || e.isGraduated)
 
   return (
     <>
@@ -176,7 +322,7 @@ export default function UserCourses() {
         title="My Courses"
         subtitle="Continue learning from where you left off"
         titleIcon={<FileVolume size={24} />}
-        totalCount={enrollments?.length ?? 0}
+        totalCount={list.length}
       />
 
       {isLoading ? (
@@ -186,7 +332,7 @@ export default function UserCourses() {
         </div>
       ) : isError ? (
         <div className="text-center py-16 text-rose-500 text-sm">Failed to load courses</div>
-      ) : !enrollments?.length ? (
+      ) : !list.length ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <div className="w-16 h-16 rounded-2xl bg-yellow-50 flex items-center justify-center">
             <BookOpen size={28} className="text-yellow-400" />

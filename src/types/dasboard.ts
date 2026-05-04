@@ -35,6 +35,7 @@ export type StatCardProps = {
   progress?: number;
   iconBg?: string;
   sub?: any;
+  onClick?: () => void;
 };
 
 export type StatusBadgeProps = {

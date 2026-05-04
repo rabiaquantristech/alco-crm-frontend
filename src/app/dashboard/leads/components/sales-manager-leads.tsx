@@ -5,7 +5,7 @@ import {
   getAllLeads, createLead, updateLead,
   assignLead, convertLead, markLostLead, addActivityLead,
   getActivitiesLead, getLeadsStats, getNamesPrograms,
-  markLeadInterested,
+  markLeadInterested, updateLeadPaymentPlan, adminGetBatches,
 } from "@/utils/api";
 import PageHeader from "@/app/component/dashboard/page-header";
 import toast from "react-hot-toast";
@@ -18,24 +18,27 @@ import LeadsModals from "../shared/leads-modals";
 import { simpleAddLeadFields, editLeadFields } from "../shared/fields";
 import { statusColor, leadFilterFields, defaultLeadFilters } from "../shared/constants";
 import { useAppSelector } from "@/store/hooks";
+import { ModalField } from "@/types/ui";
 import KanbanBoard from "./kanban-board";
 import PaymentPlanModal from "./payment-plan-modal";
 import MarkInterestedModal from "./mark-interested-modal";
+import ContractPDFGenerator from "@/app/component/dashboard/contract-pdf-generator";
 
 export default function SalesManagerLeads() {
   const queryClient = useQueryClient();
   const { user: authUser } = useAppSelector((state) => state.auth);
 
-  const [activeView, setActiveView] = useState<"opportunities" | "list">("opportunities");
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingLead, setEditingLead] = useState<any>(null);
-  const [activityLead, setActivityLead] = useState<any>(null);
-  const [lostLead, setLostLead] = useState<any>(null);
-  const [assigningLead, setAssigningLead] = useState<any>(null);
+  const [activeView, setActiveView]         = useState<"opportunities" | "list">("opportunities");
+  const [isAddOpen, setIsAddOpen]           = useState(false);
+  const [editingLead, setEditingLead]       = useState<any>(null);
+  const [activityLead, setActivityLead]     = useState<any>(null);
+  const [lostLead, setLostLead]             = useState<any>(null);
+  const [assigningLead, setAssigningLead]   = useState<any>(null);
   const [viewActivities, setViewActivities] = useState<any>(null);
   const [interestedLead, setInterestedLead] = useState<any>(null);
-  const [filters, setFilters] = useState(defaultLeadFilters);
   const [paymentPlanLead, setPaymentPlanLead] = useState<any>(null);
+  const [viewContractLead, setViewContractLead] = useState<any>(null);
+  const [filters, setFilters]               = useState(defaultLeadFilters);
 
   // ── Queries ──────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -60,21 +63,49 @@ export default function SalesManagerLeads() {
     queryFn: getNamesPrograms,
   });
 
+  const { data: batches } = useQuery({
+    queryKey: ["batches-active"],
+    queryFn: () => adminGetBatches({ status: "active" }).then((r) => r.data),
+  });
+
+  // ── Inject programs + batches into fields ─────────────────────
+  const injectPrograms = (fields: ModalField[]) =>
+    fields.map((f) =>
+      f.name === "program_id"
+        ? { ...f, options: (programs || []).map((p: any) => ({ label: p.name, value: p._id })) }
+        : f
+    );
+
+  const injectBatches = (fields: ModalField[]) =>
+    fields.map((f) =>
+      f.name === "batch_id"
+        ? {
+            ...f,
+            options: [
+              { label: "— None —", value: "" },
+              ...(batches?.data || []).map((b: any) => ({ label: b.name, value: b._id })),
+            ],
+          }
+        : f
+    );
+
+  const injectAll = (fields: ModalField[]) => injectBatches(injectPrograms(fields));
+
   const programMap = Object.fromEntries((programs || []).map((p: any) => [p._id, p.name]));
 
   const pipelineData = [
-    { label: "New", count: statsData?.new || 0, color: "bg-sky-500" },
+    { label: "New",       count: statsData?.new       || 0, color: "bg-sky-500"    },
     { label: "Contacted", count: statsData?.contacted || 0, color: "bg-yellow-400" },
     { label: "Qualified", count: statsData?.qualified || 0, color: "bg-indigo-500" },
-    { label: "Converted", count: statsData?.converted || 0, color: "bg-teal-500" },
-    { label: "Lost", count: statsData?.lost || 0, color: "bg-rose-400" },
+    { label: "Converted", count: statsData?.converted || 0, color: "bg-teal-500"   },
+    { label: "Lost",      count: statsData?.lost      || 0, color: "bg-rose-400"   },
   ];
 
   const quickStatsData = [
     { label: "Conversion Rate", value: `${statsData?.conversionRate || 0}%`, color: "text-teal-600" },
-    { label: "Hot Leads", value: `${statsData?.hot || 0}`, color: "text-red-500" },
-    { label: "Assigned", value: `${statsData?.assigned || 0}`, color: "text-blue-600" },
-    { label: "Lost", value: `${statsData?.lost || 0}`, color: "text-rose-500" },
+    { label: "Hot Leads",       value: `${statsData?.hot || 0}`,             color: "text-red-500"  },
+    { label: "Assigned",        value: `${statsData?.assigned || 0}`,        color: "text-blue-600" },
+    { label: "Lost",            value: `${statsData?.lost || 0}`,            color: "text-rose-500" },
   ];
 
   // ── Mutations ────────────────────────────────────────────────
@@ -115,40 +146,35 @@ export default function SalesManagerLeads() {
   });
 
   const { mutate: savePaymentPlan, isPending: isSavingPlan } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      updateLead(id, { paymentPlan: data }),
+    mutationFn: ({ id, data }: { id: string; data: any }) => updateLeadPaymentPlan(id, data),
     onSuccess: () => {
-      toast.success(
-        paymentPlanLead?.paymentPlan
-          ? "Payment plan updated!"
-          : "Payment plan saved!"
-      );
+      toast.success(paymentPlanLead?.paymentPlan ? "Payment plan updated!" : "Payment plan saved!");
       setPaymentPlanLead(null);
-      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
     },
   });
 
   const { mutate: markInterested, isPending: isMarkingInterested } = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
-      markLeadInterested(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => markLeadInterested(id, data),
     onSuccess: () => {
       toast.success("Lead marked as interested! ⭐");
       setInterestedLead(null);
-      queryClient.invalidateQueries({ queryKey: ["admin-leads"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-leads"] });
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || "Failed!"),
   });
 
-  // ── Actions — delete nahi hai manager ke paas ────────────────
+  // ── Actions — delete nahi hai manager ke paas ─────────────────
   const actions = {
-    onEdit: setEditingLead,
-    onAssign: setAssigningLead,
-    onActivity: setActivityLead,
+    onEdit:           setEditingLead,
+    onAssign:         setAssigningLead,
+    onActivity:       setActivityLead,
     onViewActivities: setViewActivities,
-    onConvert: (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
-    onMarkLost: setLostLead,
-    onPaymentPlan: setPaymentPlanLead,
-    onInterested: setInterestedLead,
+    onConvert:        (lead: any) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }),
+    onMarkLost:       setLostLead,
+    onPaymentPlan:    setPaymentPlanLead,
+    onInterested:     setInterestedLead,
+    onViewContract:   setViewContractLead,
   };
 
   return (
@@ -192,21 +218,22 @@ export default function SalesManagerLeads() {
           <DynamicTable
             data={data?.data || []} isLoading={isLoading} isError={isError}
             columns={[
-              { key: "name", label: "Name", render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
-              { key: "email", label: "Email" },
-              { key: "phone", label: "Phone" },
-              { key: "quality", label: "Quality", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.quality)}`}>{lead.quality}</span> },
-              { key: "status", label: "Status", render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>{lead.status}</span> },
-              { key: "source", label: "Source", render: (lead) => <span className="capitalize">{lead.source || "—"}</span> },
+              { key: "name",        label: "Name",        render: (lead) => <span className="font-medium text-gray-800">{lead.first_name} {lead.last_name}</span> },
+              { key: "email",       label: "Email"                                                                                                                  },
+              { key: "phone",       label: "Phone"                                                                                                                  },
+              { key: "quality",     label: "Quality",     render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.quality)}`}>{lead.quality}</span> },
+              { key: "status",      label: "Status",      render: (lead) => <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>{lead.status}</span> },
+              { key: "program_id",  label: "Program",     render: (lead) => <span>{programMap?.[lead.program_id] || "—"}</span> },
+              { key: "source",      label: "Source",      render: (lead) => <span className="capitalize">{lead.source || "—"}</span> },
               { key: "assigned_to", label: "Assigned To", render: (lead) => <span>{lead.assigned_to?.name || "—"}</span> },
             ]}
             actions={[
-              { icon: <Pencil size={14} />, label: "Edit", onClick: setEditingLead, className: "hover:bg-yellow-50 hover:text-yellow-600" },
-              { icon: <UserPlus size={14} />, label: "Assign", onClick: setAssigningLead, className: "hover:bg-blue-50 hover:text-blue-600" },
-              { icon: <Activity size={14} />, label: "Add Activity", onClick: setActivityLead, className: "hover:bg-indigo-50 hover:text-indigo-600" },
-              { icon: <MdOutlineRemoveRedEye size={14} />, label: "View Activities", onClick: setViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
-              { icon: <UserCheck size={14} />, label: "Convert", onClick: (lead) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }), className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
-              { icon: <XCircle size={14} />, label: "Mark Lost", onClick: setLostLead, className: "hover:bg-red-50 hover:text-red-500", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+              { icon: <Pencil size={14} />,                    label: "Edit",            onClick: setEditingLead,    className: "hover:bg-yellow-50 hover:text-yellow-600" },
+              { icon: <UserPlus size={14} />,                  label: "Assign",          onClick: setAssigningLead,  className: "hover:bg-blue-50 hover:text-blue-600"    },
+              { icon: <Activity size={14} />,                  label: "Add Activity",    onClick: setActivityLead,   className: "hover:bg-indigo-50 hover:text-indigo-600" },
+              { icon: <MdOutlineRemoveRedEye size={14} />,     label: "View Activities", onClick: setViewActivities, className: "hover:bg-indigo-50 hover:text-indigo-600", hidden: (lead) => !lead.activities?.length },
+              { icon: <UserCheck size={14} />,                 label: "Convert",         onClick: (lead) => convertLeadApi({ id: lead._id, data: { program_id: lead.program_id, batch_id: lead.batch_id, payment_plan_id: lead.payment_plan_id } }), className: "hover:bg-teal-50 hover:text-teal-600", hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
+              { icon: <XCircle size={14} />,                   label: "Mark Lost",       onClick: setLostLead,       className: "hover:bg-red-50 hover:text-red-500",      hidden: (lead) => lead.status === "converted" || lead.status === "lost" },
             ]}
           />
           <div className="grid grid-cols-3 gap-4 mt-6">
@@ -216,38 +243,60 @@ export default function SalesManagerLeads() {
         </>
       )}
 
+      {/* ── All Modals ── */}
       <LeadsModals
         isAddOpen={isAddOpen} onAddClose={() => setIsAddOpen(false)}
-        onAddSubmit={addLead} isAdding={isAdding} addFields={simpleAddLeadFields}
+        onAddSubmit={addLead} isAdding={isAdding} addFields={injectAll(simpleAddLeadFields)}
+
         editingLead={editingLead} onEditClose={() => setEditingLead(null)}
         onEditSubmit={(data) => updateLeadApi({ id: editingLead._id, data })}
-        isUpdating={isUpdating} editFields={editLeadFields}
+        isUpdating={isUpdating} editFields={injectAll(editLeadFields)}
         editInitialValues={editingLead ? {
-          first_name: editingLead.first_name || "", last_name: editingLead.last_name || "",
-          email: editingLead.email || "", phone: editingLead.phone || "",
-          quality: editingLead.quality || "", source: editingLead.source || "",
-          status: editingLead.status || "", notes: editingLead.notes || "",
-          utm_source: editingLead.utm_source || "", utm_campaign: editingLead.utm_campaign || "",
+          first_name:        editingLead.first_name        || "",
+          last_name:         editingLead.last_name         || "",
+          email:             editingLead.email             || "",
+          phone:             editingLead.phone             || "",
+          nationality:       editingLead.nationality       || "",
+          profession:        editingLead.profession        || "",
+          opportunity_value: editingLead.opportunity_value || "",
+          batch_id:          editingLead.batch_id?._id     || editingLead.batch_id    || "",
+          program_id:        editingLead.program_id?._id   || editingLead.program_id  || "",
+          status:            editingLead.status            || "",
+          quality:           editingLead.quality           || "",
+          source:            editingLead.source            || "",
+          query:             editingLead.query             || "",
+          message:           editingLead.message           || "",
+          notes:             editingLead.notes             || "",
+          utm_source:        editingLead.utm_source        || "",
+          utm_medium:        editingLead.utm_medium        || "",
+          utm_campaign:      editingLead.utm_campaign      || "",
         } : undefined}
+
         activityLead={activityLead} onActivityClose={() => setActivityLead(null)}
         onActivitySubmit={(data) => addActivity({ id: activityLead._id, data })} isAddingActivity={isAddingActivity}
+
         viewActivities={viewActivities} onViewActivitiesClose={() => setViewActivities(null)}
         activitiesData={activitiesData} isLoadingActivities={isLoadingActivities}
+
         lostLead={lostLead} onLostClose={() => setLostLead(null)}
         onLostSubmit={(data) => markLost({ id: lostLead._id, data })} isMarkingLost={isMarkingLost}
+
         assigningLead={assigningLead} onAssignClose={() => setAssigningLead(null)}
         onAssign={(userId) => assignLeadApi({ id: assigningLead._id, data: { assigned_to: userId } })}
         isAssigning={isAssigning} currentUserRole={authUser?.role}
       />
 
+      {/* ── Payment Plan Modal ── */}
       {paymentPlanLead && (
         <PaymentPlanModal
           lead={paymentPlanLead}
           onClose={() => setPaymentPlanLead(null)}
           onSubmit={(data) => savePaymentPlan({ id: paymentPlanLead._id, data })}
-          isSubmitting={isSavingPlan} />
+          isSubmitting={isSavingPlan}
+        />
       )}
 
+      {/* ── Mark Interested Modal ── */}
       {interestedLead && (
         <MarkInterestedModal
           lead={interestedLead}
@@ -255,6 +304,40 @@ export default function SalesManagerLeads() {
           onSubmit={(data) => markInterested({ id: interestedLead._id, data })}
           isSubmitting={isMarkingInterested}
         />
+      )}
+
+      {/* ── Contract View Modal ── */}
+      {viewContractLead && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <h3 className="font-semibold text-gray-800">
+                Contract — {viewContractLead.contractDetails?.fullName || `${viewContractLead.first_name} ${viewContractLead.last_name}`}
+              </h3>
+              <button onClick={() => setViewContractLead(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <ContractPDFGenerator
+              mode="preview"
+              contractData={{
+                fullName:              viewContractLead.contractDetails?.fullName,
+                email:                 viewContractLead.email,
+                phone:                 viewContractLead.phone,
+                programName:           viewContractLead.program_id?.name || viewContractLead.program_name,
+                fatherHusbandName:     viewContractLead.contractDetails?.fatherHusbandName,
+                cnic:                  viewContractLead.contractDetails?.cnic,
+                bankAccountNumber:     viewContractLead.contractDetails?.bankAccountNumber,
+                currentAddress:        viewContractLead.contractDetails?.currentAddress,
+                emergencyContactName:  viewContractLead.contractDetails?.emergencyContactName,
+                occupation:            viewContractLead.contractDetails?.occupation,
+                participationAgreement:viewContractLead.contractDetails?.participationAgreement,
+                photoVideoRelease:     viewContractLead.contractDetails?.photoVideoRelease,
+                signatureData:         viewContractLead.contractDetails?.signatureData,
+                signedAt:              viewContractLead.contractDetails?.signedAt,
+                paymentPlan:           viewContractLead.paymentPlan,
+              }}
+            />
+          </div>
+        </div>
       )}
     </>
   );
